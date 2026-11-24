@@ -12,7 +12,7 @@ Contributors are church volunteers, often non-developers, so explain changes in 
   tabs, lightbox, .ics download) is in `assets/c2.js`. Story slides are data in `window.STORIES` at the bottom of each page.
 - The header, footer, mobile tab bar and Pull up sheet are repeated in every page. If you change one, change it in all pages.
 - `404.html` uses absolute paths (`/assets/...`, `/unc`) because it can be served at any URL. Keep it that way.
-- Each page's `<head>` ends with a `<!-- seo -->` block: canonical URL, Open Graph / Twitter tags (images in `assets/og/`),
+- Each page's `<head>` ends with a `<!-- seo -->` block: canonical URL, Open Graph / Twitter tags (1200x630 images in `assets/og/`, `blog-<slug>.jpg` for blog posts),
   Vercel Analytics and Speed Insights scripts, and on the home page JSON-LD structured data. New pages need one, plus an
   entry in `sitemap.xml`. The live domain is `https://nc.acts2fellowship.org` (`SITE` in `tools/check.py`).
 - Preview: `python3 -m http.server 8000` and open http://localhost:8000.
