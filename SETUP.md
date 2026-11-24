@@ -34,7 +34,7 @@ From now on:
 GitHub → repo **Settings → Rules → Rulesets → New branch ruleset** (or **Settings → Branches → Add rule**):
 - Target: the default branch (`main`).
 - Turn on **Require a pull request before merging**, with **Required approvals: 1**.
-- Turn on **Require status checks to pass** and add **check** (the "Check site" job). Add the Vercel check too if you want merges to wait for a successful preview.
+- Turn on **Require status checks to pass** and add **check** and **test** (the two "Check site" jobs). Add the Vercel check too if you want merges to wait for a successful preview.
 - Turn on **Block force pushes**.
 
 Note: GitHub doesn't let you approve your own pull request. If you're the only person with write access,
@@ -96,7 +96,10 @@ The workflow file is already in the repo (`.github/workflows/claude.yml`). To tu
    - `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use).
 3. Optional: create an issue label named `claude`. Adding it to any issue starts Claude on it.
 4. Try it: open an issue like "@claude On the UNC page, add the Dec 5 worship night to Events".
-   Claude reads `CLAUDE.md` for the site rules, runs `tools/check.py`, and replies on the issue with a link to its branch or pull request.
+   Claude reads `CLAUDE.md` for the site rules, makes the change on a `claude/issue-…` branch, runs `tools/check.py` and the tests,
+   and opens a pull request that says "Closes #<issue>". Vercel then comments the preview link on it.
+5. To iterate, comment on the PR, for example "@claude make the date bigger and move it above the photo". Claude pushes to the
+   same branch and the same preview link updates about a minute later.
 
 Only people with write access to the repo can trigger Claude. Keep step 3's branch protection on so nothing reaches the
 live site without an approval.
