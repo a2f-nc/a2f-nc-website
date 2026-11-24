@@ -22,6 +22,8 @@ errors = []
 def err(msg): errors.append(msg)
 
 pages = sorted(f for f in os.listdir(ROOT) if f.endswith(".html"))
+if os.path.isdir(os.path.join(ROOT, "blog")):
+    pages += sorted(os.path.join("blog", f) for f in os.listdir(os.path.join(ROOT, "blog")) if f.endswith(".html"))
 code_files = [os.path.join("assets", f) for f in os.listdir(os.path.join(ROOT, "assets")) if f.endswith((".css", ".js"))]
 used = set()
 
@@ -38,10 +40,10 @@ def resolve(ref, base_dir):
         return None
     full = os.path.normpath(os.path.join(ROOT, path.lstrip("/")) if path.startswith("/") else os.path.join(ROOT, base_dir, path))
     rel = os.path.relpath(full, ROOT)
-    if os.path.isdir(full):
-        rel = os.path.join(rel, "index.html")
-    elif not os.path.splitext(rel)[1] and os.path.exists(full + ".html"):   # clean URL like /unc
+    if not os.path.splitext(rel)[1] and os.path.exists(full + ".html"):   # clean URL like /unc (wins over a folder, like on Vercel)
         rel += ".html"
+    elif os.path.isdir(full):
+        rel = os.path.join(rel, "index.html")
     return rel
 
 ATTR = re.compile(r'\b(?:href|src|poster|data-src|data-poster)\s*=\s*"([^"]*)"', re.I)
@@ -52,7 +54,7 @@ for page in pages:
     refs = ATTR.findall(html) + ASSET_STR.findall(html)
     refs += [p.strip().split(" ")[0] for s in re.findall(r'srcset\s*=\s*"([^"]*)"', html) for p in s.split(",")]
     for ref in refs:
-        rel = resolve(ref, "")
+        rel = resolve(ref, os.path.dirname(page))
         if rel is None:
             continue
         if not os.path.exists(os.path.join(ROOT, rel)):

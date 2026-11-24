@@ -48,7 +48,10 @@ so you can still merge your own PRs.
    Add it wherever the domain's DNS is managed (today that may be Squarespace or whoever runs `acts2fellowship.org`).
 3. Once the record is live, Vercel issues the HTTPS certificate on its own.
 4. Old Squarespace links keep working: `vercel.json` redirects `/unc-acts2fellowship`, `/a2f-nc-state`, `/about-us`,
-   `/our-story`, `/leadership`, `/get-connected`, `/blog` and `/resources` to the closest new page.
+   `/about-our-story`, `/ministries` and `/resources` to the matching new page.
+5. Old blog post links keep working too: each post is a page in `blog/` named after its old Squarespace address,
+   so `/blog/how-tacos-changed-my-college-life` opens `blog/how-tacos-changed-my-college-life.html`.
+   If a new post goes up on Squarespace before the switch, copy it into `blog/` as well (see README).
 
 Do this last, after you're happy with the `vercel.app` link, because it switches the live site over.
 
