@@ -24,7 +24,8 @@ warnings = []
 def err(msg): errors.append(msg)
 
 pages = sorted(f for f in os.listdir(ROOT) if f.endswith(".html"))
-pages += sorted(os.path.join("blog", f) for f in os.listdir(os.path.join(ROOT, "blog")) if f.endswith(".html"))
+if os.path.isdir(os.path.join(ROOT, "blog")):
+    pages += sorted(os.path.join("blog", f) for f in os.listdir(os.path.join(ROOT, "blog")) if f.endswith(".html"))
 code_files = [os.path.join("assets", f) for f in os.listdir(os.path.join(ROOT, "assets")) if f.endswith((".css", ".js"))]
 used = set()
 
