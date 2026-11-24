@@ -109,3 +109,17 @@ live site without an approval.
 Vercel protects preview links with a Vercel login by default. If you want other leaders to review previews without a
 Vercel account: **Project → Settings → Deployment Protection → Vercel Authentication → Disabled** (or "Only Production Deployments" off).
 The live site is always public.
+
+## 9. Dependency and security updates
+
+The website has no dependencies, but the tools around it do: the GitHub Actions in `.github/workflows/` and the
+test tools in `requirements-dev.txt`. `.github/dependabot.yml` makes GitHub open one grouped pull request a month
+when any of them has a new version. The check and test jobs run on it and Vercel posts a preview, so you review and
+merge it like any other change.
+
+Turn on the free security features once (repo **Settings → Advanced Security**, called "Code security" on some accounts):
+1. **Dependabot alerts** and **Dependabot security updates**: a pull request right away (not monthly) when a tool has a known vulnerability.
+2. **Secret scanning** and **Push protection**: blocks a commit that accidentally contains a password or API key.
+3. **Code scanning → CodeQL → Default setup**: scans `assets/c2.js`, the Python tools and the workflows for security bugs on every PR.
+
+The outside services the pages load (Google Fonts, Vercel Analytics) are always served at their latest version, so there's nothing to update there.

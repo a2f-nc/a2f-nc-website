@@ -1,0 +1,22 @@
+# Keeps the tools around the website up to date. The website itself has no dependencies.
+# Dependabot opens a pull request when something needs updating; the check and test jobs
+# run on it and Vercel posts a preview, so updates are reviewed like any other change.
+version: 2
+updates:
+  # Versions of the GitHub Actions used in .github/workflows (checkout, setup-python, claude-code-action)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Test tools in requirements-dev.txt (pytest, playwright)
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      test-tools:
+        patterns: ["*"]
