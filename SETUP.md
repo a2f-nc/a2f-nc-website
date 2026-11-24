@@ -49,9 +49,9 @@ so you can still merge your own PRs.
 3. Once the record is live, Vercel issues the HTTPS certificate on its own.
 4. Old Squarespace links keep working: `vercel.json` redirects `/unc-acts2fellowship`, `/a2f-nc-state`, `/about-us`,
    `/about-our-story`, `/ministries` and `/resources` to the matching new page.
-5. **Before switching:** the blog posts themselves (`/blog/...`) still live on Squarespace, and `blog.html` links to them
-   there. Once the domain points at Vercel those links stop working. Either copy the posts into this site first,
-   or move them to another home (for example the Acts2 College Substack) and update the links in `blog.html`.
+5. Old blog post links keep working too: each post is a page in `blog/` named after its old Squarespace address,
+   so `/blog/how-tacos-changed-my-college-life` opens `blog/how-tacos-changed-my-college-life.html`.
+   If a new post goes up on Squarespace before the switch, copy it into `blog/` as well (see README).
 
 Do this last, after you're happy with the `vercel.app` link, because it switches the live site over.
 

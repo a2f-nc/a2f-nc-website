@@ -6,6 +6,7 @@ Contributors are church volunteers, often non-developers, so explain changes in 
 ## How the site is built
 - Plain static HTML in the repo root: `index.html`, `unc.html`, `nc-state.html`, `our-story.html`, `leadership.html`,
   `statement-of-faith.html`, `get-connected.html`, `other-ministries.html`, `blog.html`, `404.html`.
+  Blog posts are pages in `blog/` (one folder down, so their links start with `../`), named after their old Squarespace slugs.
   No build step, no dependencies, no npm. Edit the pages directly.
 - All styles are in `assets/c2.css`; all behavior (story player, reels, swipe deck, Pull up sheet,
   tabs, lightbox, .ics download) is in `assets/c2.js`. Story slides are data in `window.STORIES` at the bottom of each page.
