@@ -3,22 +3,46 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
-    { "source": "/unc-acts2fellowship", "destination": "/unc", "permanent": true },
-    { "source": "/a2f-nc-state", "destination": "/nc-state", "permanent": true },
-    { "source": "/about-our-story", "destination": "/", "permanent": false },
-    { "source": "/our-story", "destination": "/", "permanent": false },
-    { "source": "/about-us", "destination": "/", "permanent": false },
-    { "source": "/leadership", "destination": "/unc", "permanent": false },
-    { "source": "/ministries", "destination": "/unc", "permanent": false },
-    { "source": "/other-ministries", "destination": "/", "permanent": false },
-    { "source": "/get-connected", "destination": "/#dms", "permanent": false },
-    { "source": "/blog", "destination": "https://acts2college.substack.com/", "permanent": false },
-    { "source": "/resources", "destination": "https://acts2college.substack.com/", "permanent": false }
+    {
+      "source": "/unc-acts2fellowship",
+      "destination": "/unc",
+      "permanent": true
+    },
+    {
+      "source": "/a2f-nc-state",
+      "destination": "/nc-state",
+      "permanent": true
+    },
+    {
+      "source": "/about-our-story",
+      "destination": "/our-story",
+      "permanent": true
+    },
+    {
+      "source": "/about-us",
+      "destination": "/our-story",
+      "permanent": true
+    },
+    {
+      "source": "/ministries",
+      "destination": "/other-ministries",
+      "permanent": true
+    },
+    {
+      "source": "/resources",
+      "destination": "/blog",
+      "permanent": true
+    }
   ],
   "headers": [
     {
       "source": "/assets/(img|vid|people|sym|brand|fonts)/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, stale-while-revalidate=86400" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, stale-while-revalidate=86400"
+        }
+      ]
     }
   ]
 }

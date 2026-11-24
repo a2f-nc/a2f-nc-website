@@ -4,7 +4,8 @@ This is the static website for Acts2Fellowship NC (UNC and NC State campus minis
 Contributors are church volunteers, often non-developers, so explain changes in plain language.
 
 ## How the site is built
-- Plain static HTML in the repo root: `index.html`, `unc.html`, `nc-state.html`, `statement-of-faith.html`, `404.html`.
+- Plain static HTML in the repo root: `index.html`, `unc.html`, `nc-state.html`, `our-story.html`, `leadership.html`,
+  `statement-of-faith.html`, `get-connected.html`, `other-ministries.html`, `blog.html`, `404.html`.
   No build step, no dependencies, no npm. Edit the pages directly.
 - All styles are in `assets/c2.css`; all behavior (story player, reels, swipe deck, Pull up sheet,
   tabs, lightbox, .ics download) is in `assets/c2.js`. Story slides are data in `window.STORIES` at the bottom of each page.

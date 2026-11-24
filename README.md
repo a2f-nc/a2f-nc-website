@@ -24,7 +24,12 @@ It's a plain static site (HTML, CSS and a little JavaScript, no framework and no
 | `index.html` | Home: story rings, intro story, Sunday ticket, campus picker, reels, swipe deck, feed, events, DMs (FAQ) |
 | `unc.html` | UNC "profile" (@a2f_unc): highlights, Posts / Reels / Events tabs, student council |
 | `nc-state.html` | NC State "profile" (@a2fncsu), same pattern in maroon |
+| `our-story.html` | How A2F started, with a tap-through timeline story |
+| `leadership.html` | Ben and Helen (Q&A as chat threads) and our mentors |
 | `statement-of-faith.html` | What we believe, with Bible references |
+| `get-connected.html` | The UNC get-connected form, NC State sign-up link, photo grid |
+| `other-ministries.html` | ISMP and Area Youth Ministry |
+| `blog.html` | Blog post list (posts themselves are still on the old site, see SETUP.md) |
 | `404.html` | Shown for any page that doesn't exist |
 
 Some page text lives in a `<script>` block near the bottom of each page (`window.STORIES = {...}`).
@@ -36,7 +41,8 @@ That's where each story's slides, captions and photos are listed.
 |---|---|
 | `assets/img/` | Photos, about 1080px on the long side |
 | `assets/vid/` | Reel clips (720x1280 MP4, about 1 MB each) plus a `.jpg` poster frame with the same name |
-| `assets/people/` | Student council headshots |
+| `assets/people/` | Student council and Ben & Helen headshots, ministry logos |
+| `assets/blog/` | Blog post thumbnails |
 | `assets/sym/`, `assets/brand/` | Campus symbols, A2F tree icon |
 | `assets/fonts/` | Glacial Indifference (brand font, self-hosted) |
 | `tools/check.py` | The site check that also runs on every pull request |

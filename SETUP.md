@@ -48,7 +48,10 @@ so you can still merge your own PRs.
    Add it wherever the domain's DNS is managed (today that may be Squarespace or whoever runs `acts2fellowship.org`).
 3. Once the record is live, Vercel issues the HTTPS certificate on its own.
 4. Old Squarespace links keep working: `vercel.json` redirects `/unc-acts2fellowship`, `/a2f-nc-state`, `/about-us`,
-   `/our-story`, `/leadership`, `/get-connected`, `/blog` and `/resources` to the closest new page.
+   `/about-our-story`, `/ministries` and `/resources` to the matching new page.
+5. **Before switching:** the blog posts themselves (`/blog/...`) still live on Squarespace, and `blog.html` links to them
+   there. Once the domain points at Vercel those links stop working. Either copy the posts into this site first,
+   or move them to another home (for example the Acts2 College Substack) and update the links in `blog.html`.
 
 Do this last, after you're happy with the `vercel.app` link, because it switches the live site over.
 
