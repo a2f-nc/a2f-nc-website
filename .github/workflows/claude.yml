@@ -86,10 +86,12 @@ jobs:
           BODY: ${{ github.event.comment.body }}
           LABELS: ${{ toJSON(github.event.issue.labels.*.name) }}
         run: |
-          branch=$(gh pr list -R "$REPO" --state open --limit 100 --json headRefName \
-            --jq "[.[] | select(.headRefName | startswith(\"claude/issue-$ISSUE-\"))][0].headRefName // empty")
-          pr=""
-          [ -n "$branch" ] && pr=$(gh pr list -R "$REPO" --state open --head "$branch" --json number --jq '.[0].number')
+          # Only a pull request whose branch lives in this repo (so it was pushed by someone with write access, or by
+          # Claude). A fork can name its branch claude/issue-N-… too, and must never be checked out here.
+          found=$(gh pr list -R "$REPO" --state open --limit 100 --json number,headRefName,isCrossRepository \
+            --jq "[.[] | select(.isCrossRepository == false and (.headRefName | startswith(\"claude/issue-$ISSUE-\")))][0] // empty")
+          branch=""; pr=""
+          if [ -n "$found" ]; then branch=$(jq -r .headRefName <<<"$found"); pr=$(jq -r .number <<<"$found"); fi
           asked=$(gh api "repos/$REPO/issues/$ISSUE/comments" --paginate --jq '.[] | select(.user.login == "claude[bot]") | .id' | wc -l)
           involved=false
           if [ -n "$branch" ] || [ "$asked" -gt 0 ] || [[ "$BODY" == *"@claude"* ]] || [[ "$LABELS" == *'"claude"'* ]]; then involved=true; fi

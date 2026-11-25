@@ -147,6 +147,7 @@ def test_feedback_only_pushes_to_the_issues_own_pull_request():
     job = _jobs(read(".github/workflows/claude.yml"))["issue-feedback"]
     assert 'startswith(\\"claude/issue-$ISSUE-\\")' in job, "must look up the PR for this issue's own branch"
     assert "ref: ${{ steps.find.outputs.branch" in job
+    assert "isCrossRepository == false" in job, "never check out a branch from a fork"
     assert "Bash(git push origin HEAD)" in job and "Bash(git push:" not in job, "only a plain push of the checked-out branch"
     assert "Bash(git checkout" not in job and "Bash(git switch" not in job
 
