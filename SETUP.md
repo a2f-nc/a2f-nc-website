@@ -34,7 +34,7 @@ From now on:
 GitHub → repo **Settings → Rules → Rulesets → New branch ruleset** (or **Settings → Branches → Add rule**):
 - Target: the default branch (`main`).
 - Turn on **Require a pull request before merging**, with **Required approvals: 1**.
-- Turn on **Require status checks to pass** and add **check** (the "Check site" job). Add the Vercel check too if you want merges to wait for a successful preview.
+- Turn on **Require status checks to pass** and add **check** and **test** (the two "Check site" jobs). Add the Vercel check too if you want merges to wait for a successful preview.
 - Turn on **Block force pushes**.
 
 Note: GitHub doesn't let you approve your own pull request. If you're the only person with write access,
@@ -96,7 +96,10 @@ The workflow file is already in the repo (`.github/workflows/claude.yml`). To tu
    - `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use).
 3. Optional: create an issue label named `claude`. Adding it to any issue starts Claude on it.
 4. Try it: open an issue like "@claude On the UNC page, add the Dec 5 worship night to Events".
-   Claude reads `CLAUDE.md` for the site rules, runs `tools/check.py`, and replies on the issue with a link to its branch or pull request.
+   Claude reads `CLAUDE.md` for the site rules, makes the change on a `claude/issue-…` branch, runs `tools/check.py` and the tests,
+   and opens a pull request that says "Closes #<issue>". Vercel then comments the preview link on it.
+5. To iterate, comment on the PR, for example "@claude make the date bigger and move it above the photo". Claude pushes to the
+   same branch and the same preview link updates about a minute later.
 
 Only people with write access to the repo can trigger Claude. Keep step 3's branch protection on so nothing reaches the
 live site without an approval.
@@ -106,3 +109,24 @@ live site without an approval.
 Vercel protects preview links with a Vercel login by default. If you want other leaders to review previews without a
 Vercel account: **Project → Settings → Deployment Protection → Vercel Authentication → Disabled** (or "Only Production Deployments" off).
 The live site is always public.
+
+## 9. Dependency and security updates
+
+The website has no dependencies, but the tools around it do: the GitHub Actions in `.github/workflows/` and the
+test tools in `requirements-dev.txt`. `.github/dependabot.yml` makes GitHub open one grouped pull request a month
+when any of them has a new version. The check and test jobs run on it and Vercel posts a preview.
+
+**Security fixes and minor or patch updates merge themselves** once check and test pass (the `dependabot-automerge`
+job in `.github/workflows/check-site.yml` approves them and turns on auto-merge). Major version updates, which are more
+likely to change how a tool works, get their own pull request and wait for you to review and merge. If an update breaks
+something, the tests fail and the pull request waits for you too. For this to work, turn on once:
+- **Settings → General → Pull Requests → Allow auto-merge**.
+- **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests**
+  (so the job's approval counts toward the 1 required approval from step 3).
+
+Turn on the free security features once (repo **Settings → Advanced Security**, called "Code security" on some accounts):
+1. **Dependabot alerts** and **Dependabot security updates**: a pull request right away (not monthly) when a tool has a known vulnerability.
+2. **Secret scanning** and **Push protection**: blocks a commit that accidentally contains a password or API key.
+3. **Code scanning → CodeQL → Default setup**: scans `assets/c2.js`, the Python tools and the workflows for security bugs on every PR.
+
+The outside services the pages load (Google Fonts, Vercel Analytics) are always served at their latest version, so there's nothing to update there.

@@ -32,7 +32,13 @@ Contributors are church volunteers, often non-developers, so explain changes in 
 - Photos: real community photos, bright and sharp with faces visible, and a mix of people. No photo or clip appears twice
   across the site. Every `<img>` needs an `alt` that describes it. Only commit files the site actually uses.
 
+## Tests
+- `tests/` holds pytest + Playwright tests (`python3 -m pytest`). Install with `pip install -r requirements-dev.txt`
+  and `python3 -m playwright install chromium`. CI runs them on every PR in the "test" job.
+- When you add a feature or page, add or extend a test for it. Never delete or weaken a test to make it pass;
+  if a test is wrong because the design intentionally changed, update it and say so in the PR.
+
 ## Before opening a PR
-1. `python3 tools/check.py` says "All good".
+1. `python3 tools/check.py` says "All good" and `python3 -m pytest` passes.
 2. Check the changed pages at desktop and phone width, and open a story, a reel and the Pull up sheet.
 3. Say in the PR which pages to check on the Vercel preview.

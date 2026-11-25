@@ -2,4 +2,7 @@ README.md
 CLAUDE.md
 SETUP.md
 tools
+tests
 .github
+requirements-dev.txt
+pytest.ini

@@ -33,7 +33,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+      # So Claude can run the site check and the tests before pushing
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test tools
+        run: |
+          pip install -r requirements-dev.txt
+          python -m playwright install --with-deps chromium
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          branch_name_template: "{{prefix}}{{entityType}}-{{entityNumber}}-{{description}}"
+          claude_args: |
+            --allowedTools "Bash(python3 tools/check.py),Bash(python3 -m pytest:*),Bash(python -m pytest:*),Bash(gh pr create:*),Bash(gh pr view:*)"
+            --append-system-prompt "When you are working from an issue (not a pull request), finish by opening a pull request yourself with gh pr create (base: main). Its body must say 'Closes #<issue number>', explain the change in plain language for non-developer volunteers, and list which pages to check on the Vercel preview. When you are asked for changes on an existing pull request, push to that pull request's branch. Always run python3 tools/check.py and python3 -m pytest before you push, and fix anything they report."

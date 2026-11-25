@@ -15,6 +15,8 @@ It's a plain static site (HTML, CSS and a little JavaScript, no framework and no
 2. Preview locally: `python3 -m http.server 8000`, then open http://localhost:8000
    (use your browser's phone view at 390px wide too).
 3. Run the check: `python3 tools/check.py`. It should say "All good".
+   Optionally run the tests too (they also run automatically on every pull request):
+   `pip install -r requirements-dev.txt`, `python3 -m playwright install chromium`, then `python3 -m pytest`.
 4. Push a branch and open a pull request. Check the Vercel preview link on the PR (on your phone too), then ask for a review.
 
 ## Pages
@@ -51,6 +53,7 @@ That's where each story's slides, captions and photos are listed.
 | `assets/sym/`, `assets/brand/` | Campus symbols, A2F tree icon |
 | `assets/fonts/` | Glacial Indifference (brand font, self-hosted) |
 | `tools/check.py` | The site check that also runs on every pull request |
+| `tests/` | Automated tests: every page in a real browser at phone and desktop size, plus the interactive features |
 
 ## Adding a photo or clip
 
@@ -59,3 +62,18 @@ That's where each story's slides, captions and photos are listed.
 - Use a new file name when you replace a photo (photos are cached for a week).
 - Every photo needs a short `alt` description for screen readers, and each photo should only appear once on the site.
 - Delete files you stop using. The check fails if something in `assets/` isn't used.
+
+## Tests
+
+Every pull request runs two jobs on GitHub ("Check site"):
+
+- **check**: `tools/check.py`: broken links, missing alt text, titles, descriptions, SEO tags, sitemap, file sizes, unused files, banned copy.
+- **test**: `python -m pytest` opens every page in Chromium at phone (390px) and desktop width and checks that:
+  - pages load with no script errors or missing files, and nothing scrolls sideways
+  - stories open, move with arrow keys and taps, close with Esc, and don't auto-advance with "reduce motion" on
+  - the Pull up sheet opens, switches UNC / NC State and closes; "Add to my calendar" downloads a weekly Sunday event
+  - reels, the swipe deck, the DM questions, profile tabs and the photo lightbox work
+  - header and footer are the same on every page, no photo is on two pages, redirects and sitemap are consistent
+  - `tools/check.py` itself catches each kind of problem
+
+If a test fails, the PR shows a red ✗ with the reason. Fix the page (not the test) unless the change was intentional.
