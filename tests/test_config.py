@@ -96,3 +96,15 @@ def test_no_photo_file_used_on_two_pages():
             seen.setdefault(src, []).append(p)
     dupes = {k: v for k, v in seen.items() if len(v) > 1}
     assert dupes == {}, f"photos used on more than one page: {dupes}"
+
+
+def test_dependabot_only_auto_merges_after_check_and_test():
+    """Dependabot pull requests may merge themselves, but only once both CI jobs pass, and never a major bump."""
+    wf = read(".github/workflows/check-site.yml")
+    job = wf.split("dependabot-automerge:", 1)[1]
+    assert "needs: [check, test]" in job
+    assert "dependabot[bot]" in job and "gh pr merge --auto" in job
+    assert "semver-major" not in job
+    cfg = read(".github/dependabot.yml")
+    assert cfg.count("update-types: [minor, patch]") == 2, "grouped monthly updates must leave out major versions"
+    assert cfg.count("applies-to: security-updates") == 2

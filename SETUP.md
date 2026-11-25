@@ -114,8 +114,15 @@ The live site is always public.
 
 The website has no dependencies, but the tools around it do: the GitHub Actions in `.github/workflows/` and the
 test tools in `requirements-dev.txt`. `.github/dependabot.yml` makes GitHub open one grouped pull request a month
-when any of them has a new version. The check and test jobs run on it and Vercel posts a preview, so you review and
-merge it like any other change.
+when any of them has a new version. The check and test jobs run on it and Vercel posts a preview.
+
+**Security fixes and minor or patch updates merge themselves** once check and test pass (the `dependabot-automerge`
+job in `.github/workflows/check-site.yml` approves them and turns on auto-merge). Major version updates, which are more
+likely to change how a tool works, get their own pull request and wait for you to review and merge. If an update breaks
+something, the tests fail and the pull request waits for you too. For this to work, turn on once:
+- **Settings → General → Pull Requests → Allow auto-merge**.
+- **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests**
+  (so the job's approval counts toward the 1 required approval from step 3).
 
 Turn on the free security features once (repo **Settings → Advanced Security**, called "Code security" on some accounts):
 1. **Dependabot alerts** and **Dependabot security updates**: a pull request right away (not monthly) when a tool has a known vulnerability.
