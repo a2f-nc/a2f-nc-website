@@ -5,8 +5,8 @@ name: Claude
 #  - comment on that issue with feedback (no @claude needed): Claude updates the same pull request and replies there
 #  - the preview link is posted on the issue too (see issue-preview-link.yml)
 #  - "@claude ..." on a pull request still works, and so does adding the "claude" label to an issue
-# Needs one repo secret: CLAUDE_CODE_OAUTH_TOKEN (Claude Pro/Max, from `claude setup-token`)
-# or ANTHROPIC_API_KEY (from console.anthropic.com). See SETUP.md step 7.
+# Signs in to the Claude API one of three ways (SETUP.md step 7): keyless with the ANTHROPIC_FEDERATION_RULE_ID and
+# ANTHROPIC_ORGANIZATION_ID repo variables (recommended), or a CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY repo secret.
 on:
   issues:
     types: [opened, assigned, labeled]
@@ -52,6 +52,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Keyless sign-in (workload identity federation): set these repo variables instead of a key secret.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
           branch_name_template: "{{prefix}}{{entityType}}-{{entityNumber}}-{{description}}"
           # A newly opened issue has no @claude in it, so give Claude its task directly. track_progress keeps the
           # usual flow: a progress comment on the issue and a claude/issue-… branch. Other events leave both off.
@@ -131,6 +136,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Keyless sign-in (workload identity federation): set these repo variables instead of a key secret.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
           prompt: |
             You are continuing work on issue #${{ github.event.issue.number }} in ${{ github.repository }}.
             Your pull request for it is #${{ steps.find.outputs.pr }}, on branch ${{ steps.find.outputs.branch }}, which is checked out.
@@ -154,6 +164,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Keyless sign-in (workload identity federation): set these repo variables instead of a key secret.
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
           branch_name_template: "{{prefix}}{{entityType}}-{{entityNumber}}-{{description}}"
           track_progress: true
           prompt: "A team member just replied on this issue. Read the whole issue and its comments, then carry out the requested website change. If it is still too unclear to act on, reply on the issue with what you need."

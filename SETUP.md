@@ -93,9 +93,15 @@ The workflow file is already in the repo (`.github/workflows/claude.yml`). To tu
 
 1. Make sure the Claude GitHub App is installed on the `a2f-nc` organization with access to this repo:
    https://github.com/apps/claude
-2. Add **one** secret under repo **Settings → Secrets and variables → Actions → New repository secret**:
-   - `CLAUDE_CODE_OAUTH_TOKEN` if you have a Claude Pro or Max plan: run `claude setup-token` in a terminal and paste the token, or
-   - `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use).
+2. Let the workflow sign in to the Claude API. Pick **one**:
+   - **Keyless (recommended).** In the Claude Console, create a connection and choose **"CI pipeline"** (GitHub Actions,
+     repo `a2f-nc/a2f-nc-website`, any branch, workflow `.github/workflows/claude.yml`). It shows a federation rule ID
+     (`fdrl_…`) and your organization ID. Add them under repo **Settings → Secrets and variables → Actions → Variables**
+     as `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID` (plus `ANTHROPIC_SERVICE_ACCOUNT_ID` or
+     `ANTHROPIC_WORKSPACE_ID` if it shows those). No secret is stored anywhere, so there's nothing to leak.
+   - Or add a repo **secret**: `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use), or `CLAUDE_CODE_OAUTH_TOKEN`
+     if you have a Claude Pro or Max plan (run `claude setup-token` in a terminal and paste the token).
+   Use a Console workspace with a monthly spend limit either way.
 3. Optional: create an issue label named `claude`. Adding it to any issue starts Claude on it.
 4. Try it: open an issue like "On the UNC page, add the Dec 5 worship night to Events". You don't need to write `@claude`:
    Claude picks up every new issue opened by someone with write access to the repo. Issues from anyone else wait until
