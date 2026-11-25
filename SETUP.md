@@ -84,24 +84,38 @@ When you add a page: give it a title, description and `<!-- seo -->` block (copy
 
 ## 7. Request changes by opening an issue (Claude GitHub Action)
 
-The flow: someone opens an issue describing a change → Claude writes it on a branch and opens a pull request →
-Vercel comments a preview link → you ask for tweaks by commenting `@claude ...` on the PR → a reviewer approves → merge publishes it.
+The flow, all in the issue: someone on the team opens an issue describing a change → Claude starts on it right away,
+posts its progress on the issue, and opens a pull request → the Vercel preview link is posted on the issue → you reply on
+the issue with tweaks and Claude updates the same pull request → a reviewer approves and merges the PR, which publishes it
+and closes the issue.
 
 The workflow file is already in the repo (`.github/workflows/claude.yml`). To turn it on:
 
 1. Make sure the Claude GitHub App is installed on the `a2f-nc` organization with access to this repo:
    https://github.com/apps/claude
-2. Add **one** secret under repo **Settings → Secrets and variables → Actions → New repository secret**:
-   - `CLAUDE_CODE_OAUTH_TOKEN` if you have a Claude Pro or Max plan: run `claude setup-token` in a terminal and paste the token, or
-   - `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use).
+2. Let the workflow sign in to the Claude API. Pick **one**:
+   - **Keyless (recommended).** In the Claude Console, create a connection and choose **"CI pipeline"** (GitHub Actions,
+     repo `a2f-nc/a2f-nc-website`, any branch, workflow `.github/workflows/claude.yml`). It shows a federation rule ID
+     (`fdrl_…`) and your organization ID. Add them under repo **Settings → Secrets and variables → Actions → Variables**
+     as `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID` (plus `ANTHROPIC_SERVICE_ACCOUNT_ID` or
+     `ANTHROPIC_WORKSPACE_ID` if it shows those). No secret is stored anywhere, so there's nothing to leak.
+   - Or add a repo **secret**: `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use), or `CLAUDE_CODE_OAUTH_TOKEN`
+     if you have a Claude Pro or Max plan (run `claude setup-token` in a terminal and paste the token).
+   Use a Console workspace with a monthly spend limit either way.
 3. Optional: create an issue label named `claude`. Adding it to any issue starts Claude on it.
-4. Try it: open an issue like "@claude On the UNC page, add the Dec 5 worship night to Events".
+4. Try it: open an issue like "On the UNC page, add the Dec 5 worship night to Events". You don't need to write `@claude`:
+   Claude picks up every new issue opened by someone with write access to the repo. Issues from anyone else wait until
+   someone with write access adds the `claude` label, so strangers can't spend the API budget or steer Claude.
    Claude reads `CLAUDE.md` for the site rules, makes the change on a `claude/issue-…` branch, runs `tools/check.py` and the tests,
-   and opens a pull request that says "Closes #<issue>". Vercel then comments the preview link on it.
-5. To iterate, comment on the PR, for example "@claude make the date bigger and move it above the photo". Claude pushes to the
-   same branch and the same preview link updates about a minute later.
+   and opens a pull request that says "Closes #<issue>". The Vercel preview link is then posted on the issue (and on the PR).
+5. To iterate, just reply on the issue, for example "make the date bigger and move it above the photo". No `@claude`
+   needed. Claude pushes to the same pull request, replies on the issue, and the preview link on the issue updates about
+   a minute later. (Commenting `@claude ...` on the pull request itself still works too.)
+6. The final approve and merge happen on the pull request, because GitHub only allows them there. The issue links to it.
 
-Only people with write access to the repo can trigger Claude. Keep step 3's branch protection on so nothing reaches the
+Only people with write access to the repo can trigger Claude. Issues and comments from anyone else are ignored.
+To stop strangers from posting at all, use the org's Settings → Moderation → Interaction limits ("Limit to repository
+collaborators", renew every 6 months). Keep step 3's branch protection on so nothing reaches the
 live site without an approval.
 
 ## 8. Let others see preview links
