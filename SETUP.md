@@ -106,7 +106,8 @@ The workflow file is already in the repo (`.github/workflows/claude.yml`). To tu
      as `ANTHROPIC_FEDERATION_RULE_ID` and `ANTHROPIC_ORGANIZATION_ID` (plus `ANTHROPIC_SERVICE_ACCOUNT_ID` or
      `ANTHROPIC_WORKSPACE_ID` if it shows those). No secret is stored anywhere, so there's nothing to leak.
    - Or add a repo **secret**: `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use), or `CLAUDE_CODE_OAUTH_TOKEN`
-     if you have a Claude Pro or Max plan (run `claude setup-token` in a terminal and paste the token).
+     from a Claude Pro or Max plan (run `claude setup-token`). Anthropic's terms describe subscription sign-in as for
+     ordinary, individual use, so for a shared team workflow the API is the safer choice.
    Use a Console workspace with a monthly spend limit either way.
 3. Optional: create an issue label named `claude`. Adding it to any issue starts Claude on it.
 4. Try it: open an issue like "On the UNC page, add the Dec 5 worship night to Events". You don't need to write `@claude`:
@@ -114,6 +115,10 @@ The workflow file is already in the repo (`.github/workflows/claude.yml`). To tu
    someone with write access adds the `claude` label, so strangers can't spend the API budget or steer Claude.
    Claude reads `CLAUDE.md` for the site rules, makes the change on a `claude/issue-…` branch, runs `tools/check.py` and the tests,
    and opens a pull request that says "Closes #<issue>". The Vercel preview link is then posted on the issue (and on the PR).
+   Claude uses **Sonnet 5.5** by default. For a harder change, create a label named `claude-opus` and add it to the issue:
+   Claude then uses **Opus 5.5** (stronger, but costs more) the next time it runs on that issue. A run that has already
+   started keeps its model, so add the label first and then reply on the issue, for example "please try again".
+   (The model is set once, in the `CLAUDE_MODEL` line at the top of `claude.yml`.)
 5. To iterate, just reply on the issue, for example "make the date bigger and move it above the photo". No `@claude`
    needed. Claude pushes to the same pull request, replies on the issue, and the preview link on the issue updates about
    a minute later. (Commenting `@claude ...` on the pull request itself still works too.)
