@@ -1,0 +1,58 @@
+name: Check Claude sign-in
+# Run by hand (Actions tab -> "Check Claude sign-in" -> Run workflow, on the main branch) when Claude can't sign in to
+# the Claude API. It does the same keyless sign-in as claude.yml and prints what the Claude API answers at each step,
+# with the tokens hidden. Only people with write access can run it. It never changes the repository.
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  signin:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get GitHub's sign-in token and look at what it says
+        id: oidc
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const token = await core.getIDToken('https://api.anthropic.com');
+            core.setSecret(token);
+            core.exportVariable('JWT', token);
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+            const shown = ['iss', 'aud', 'sub', 'ref', 'repository', 'repository_owner', 'repository_owner_id', 'event_name', 'workflow_ref'];
+            core.info(JSON.stringify(Object.fromEntries(shown.map(k => [k, claims[k]])), null, 2));
+      - name: Exchange it for a Claude API access token
+        env:
+          RULE: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ORG: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          SA: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          WS: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+        run: |
+          body=$(jq -n --arg jwt "$JWT" --arg rule "$RULE" --arg org "$ORG" --arg sa "$SA" --arg ws "$WS" \
+            '{grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: $jwt, federation_rule_id: $rule, organization_id: $org, service_account_id: $sa, workspace_id: $ws}')
+          status=$(curl -sS -o exchange.json -w '%{http_code}' https://api.anthropic.com/v1/oauth/token \
+            -H "content-type: application/json" --data "$body")
+          echo "Exchange answered HTTP $status"
+          jq 'with_entries(if (.key | test("token$")) then .value = "<hidden>" else . end)' exchange.json
+          access=$(jq -r '.access_token // empty' exchange.json)
+          if [ -n "$access" ]; then
+            echo "::add-mask::$access"
+            echo "ACCESS=$access" >> "$GITHUB_ENV"
+            echo "Sign-in worked: Claude gave this workflow an access token."
+          else
+            echo "::error::The Claude API did not give an access token. Read the answer above."
+            exit 1
+          fi
+      - name: Make one tiny request with that token, for each model
+        run: |
+          for model in claude-opus-5-5 claude-sonnet-5-5 claude-haiku-5-5; do
+            status=$(curl -sS -o reply.json -w '%{http_code}' https://api.anthropic.com/v1/messages \
+              -H "authorization: Bearer $ACCESS" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" \
+              --data "{\"model\":\"$model\",\"max_tokens\":8,\"messages\":[{\"role\":\"user\",\"content\":\"Say ok\"}]}")
+            echo "$model -> HTTP $status"
+            jq -c 'if .error then {error: .error} else {answered: true} end' reply.json
+          done
