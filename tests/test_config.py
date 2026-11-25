@@ -155,7 +155,8 @@ def test_feedback_only_pushes_to_the_issues_own_pull_request():
 def test_preview_link_only_goes_to_claude_issue_branches():
     wf = read(".github/workflows/issue-preview-link.yml")
     assert "^claude/issue-([0-9]+)-" in wf
-    assert "state == 'success'" in wf
+    assert "github.event.comment.user.login == 'vercel[bot]'" in wf, "only Vercel's own comment may set the link"
+    assert "head.repo.full_name" in wf, "pull requests from forks must be ignored"
     assert "${{ github.event" not in wf.split("run: |", 1)[1], "event values must reach the script through env, not inline"
 
 

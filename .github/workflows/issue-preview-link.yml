@@ -1,15 +1,18 @@
 name: Issue preview link
-# When Vercel finishes a preview for one of Claude's pull requests (branch claude/issue-<N>-…), post the preview
-# link on issue <N>, so the whole conversation can stay in the issue. It keeps one comment and updates it, so
-# each new push changes the same link instead of adding another comment.
-on: deployment_status
+# When Vercel posts or updates its preview comment on one of Claude's pull requests (branch claude/issue-<N>-…),
+# copy the preview link onto issue <N>, so the whole conversation can stay in the issue. It keeps one comment and
+# updates it, so each new push changes the same link instead of adding another comment.
+# (Vercel here reports through its pull request comment, not through GitHub "deployment" events, so we listen for that.)
+on:
+  issue_comment:
+    types: [created, edited]
 
 permissions:
   contents: read
 
 jobs:
   link:
-    if: github.event.deployment_status.state == 'success' && startsWith(github.event.deployment.environment, 'Preview')
+    if: github.event.issue.pull_request && github.event.comment.user.login == 'vercel[bot]' && contains(github.event.comment.body, 'Ready')
     permissions:
       issues: write
       pull-requests: read
@@ -19,22 +22,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          SHA: ${{ github.event.deployment.sha }}
-          URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+          PR: ${{ github.event.issue.number }}
+          COMMENT: ${{ github.event.comment.body }}
         run: |
-          pr=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '[.[] | select(.state == "open")][0] // empty')
-          if [ -z "$pr" ]; then echo "No open pull request for $SHA"; exit 0; fi
+          pr=$(gh api "repos/$REPO/pulls/$PR")
           branch=$(jq -r .head.ref <<<"$pr")
-          num=$(jq -r .number <<<"$pr")
+          sha=$(jq -r .head.sha <<<"$pr")
+          if [ "$(jq -r .head.repo.full_name <<<"$pr")" != "$REPO" ]; then echo "Pull request is from a fork"; exit 0; fi
           if [[ ! "$branch" =~ ^claude/issue-([0-9]+)- ]]; then echo "$branch is not a Claude issue branch"; exit 0; fi
           issue="${BASH_REMATCH[1]}"
+          url=$(grep -oE 'https://[A-Za-z0-9.-]+\.vercel\.app' <<<"$COMMENT" | head -n 1 || true)
+          if [ -z "$url" ]; then echo "No preview link in the Vercel comment"; exit 0; fi
           marker="<!-- issue-preview-link -->"
           printf -v body '%s\n🔎 **Preview is ready:** %s\n\nThis shows pull request #%s as of commit %s. It updates here each time Claude pushes a change.\nReply on this issue with anything you would like changed. When it looks right, approve and merge #%s to publish it.' \
-            "$marker" "$URL" "$num" "${SHA:0:7}" "$num"
+            "$marker" "$url" "$PR" "${sha:0:7}" "$PR"
           id=$(gh api "repos/$REPO/issues/$issue/comments" --paginate --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | tail -n 1)
           if [ -n "$id" ]; then
             gh api -X PATCH "repos/$REPO/issues/comments/$id" -f body="$body" > /dev/null
           else
             gh api -X POST "repos/$REPO/issues/$issue/comments" -f body="$body" > /dev/null
           fi
-          echo "Preview link for #$num posted on issue #$issue"
+          echo "Preview link for #$PR posted on issue #$issue"
