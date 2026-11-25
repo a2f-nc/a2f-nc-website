@@ -118,7 +118,7 @@ def _jobs(wf):
     return dict(re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:\n|\Z)", body, re.S | re.M))
 
 
-@pytest.mark.parametrize("name", ["claude.yml", "issue-preview-link.yml"])
+@pytest.mark.parametrize("name", ["claude.yml", "issue-preview-link.yml", "check-claude-signin.yml"])
 def test_claude_workflows_are_read_only_by_default(name):
     top = read(".github/workflows/" + name).split("\njobs:\n", 1)[0]
     assert top.split("\npermissions:\n", 1)[1].strip() == "contents: read", "workflow default must stay read-only"
@@ -157,3 +157,10 @@ def test_preview_link_only_goes_to_claude_issue_branches():
     assert "^claude/issue-([0-9]+)-" in wf
     assert "state == 'success'" in wf
     assert "${{ github.event" not in wf.split("run: |", 1)[1], "event values must reach the script through env, not inline"
+
+
+def test_signin_check_only_runs_by_hand_and_never_touches_the_repo():
+    wf = read(".github/workflows/check-claude-signin.yml")
+    assert "\non: workflow_dispatch\n" in wf, "only people with write access should be able to start it"
+    assert "contents: write" not in wf and "actions/checkout" not in wf
+    assert "${{ github.event" not in wf and "${{ steps" not in wf.split("run: |", 1)[1], "no event text inside scripts"

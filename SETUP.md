@@ -113,6 +113,10 @@ The workflow file is already in the repo (`.github/workflows/claude.yml`). To tu
    a minute later. (Commenting `@claude ...` on the pull request itself still works too.)
 6. The final approve and merge happen on the pull request, because GitHub only allows them there. The issue links to it.
 
+If Claude says it "encountered an error" right away, it probably can't sign in to the Claude API. Run
+**Actions → Check Claude sign-in → Run workflow** (branch `main`): it tries the same sign-in and prints what the
+Claude API answers at each step, with the tokens hidden.
+
 Only people with write access to the repo can trigger Claude. Issues and comments from anyone else are ignored.
 To stop strangers from posting at all, use the org's Settings → Moderation → Interaction limits ("Limit to repository
 collaborators", renew every 6 months). Keep step 3's branch protection on so nothing reaches the
