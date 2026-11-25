@@ -1,7 +1,7 @@
 # Setting up GitHub and Vercel
 
 One-time setup to put the Stories site on GitHub and have Vercel publish it.
-Steps 1 to 4 get the site live. Steps 5 to 7 are optional upgrades you can add any time.
+Steps 1 to 4 get the site live. Steps 5 to 8 turn on analytics, finish SEO, and set up the Claude workflow.
 
 ## 1. Put the site on GitHub
 
@@ -55,80 +55,54 @@ so you can still merge your own PRs.
 
 Do this last, after you're happy with the `vercel.app` link, because it switches the live site over.
 
-## 5. Optional: Vercel Web Analytics and Speed Insights
+## 5. Vercel Web Analytics and Speed Insights
 
-Privacy-friendly visitor counts (no cookie banner needed) and real-world page speed.
+The pages already load both scripts (in the `<!-- seo -->` block of each page). To start collecting data:
 
 1. In Vercel: **Project → Analytics → Enable**, and **Project → Speed Insights → Enable**.
-2. Add these two lines just before `</head>` in every page (`index.html`, `unc.html`, `nc-state.html`,
-   `statement-of-faith.html`, `404.html`):
-   ```html
-   <script defer src="/_vercel/insights/script.js"></script>
-   <script defer src="/_vercel/speed-insights/script.js"></script>
-   ```
-3. Merge, and data starts showing in Vercel within a few minutes of visits. (They only load on the deployed site, not on localhost.)
+2. Data shows up in those tabs a few minutes after people visit. It's privacy-friendly (no cookies, so no cookie banner).
+   The scripts only run on the deployed site, not on localhost.
 
-## 6. Optional: SEO basics
+## 6. SEO
 
-What to add so the site shows up well in Google and in link previews (iMessage, Instagram DMs, GroupMe):
+Already built into the site:
+- A unique `<title>`, meta description and canonical URL on every page.
+- Link previews (iMessage, Instagram DMs, GroupMe): Open Graph and Twitter tags with a 1200x630 image from `assets/og/`.
+- `sitemap.xml` and `robots.txt` in the repo root.
+- Structured data on the home page: the organization (name, logo, Instagram accounts) and the weekly Sunday gathering at UNC.
+- The `*.vercel.app` addresses send `noindex`, so Google only lists the real domain.
 
-- **Titles and descriptions**: every page already has a unique `<title>` and meta description (the check enforces it).
-- **Canonical URL** on each page, for example `<link rel="canonical" href="https://nc.acts2fellowship.org/unc">`.
-- **Open Graph / link preview tags** on each page: `og:title`, `og:description`, `og:url`, `og:type`, and an
-  `og:image` (a 1200x630 JPG per page, for example a group photo with the A2F wordmark), plus `twitter:card` set to `summary_large_image`.
-- **`sitemap.xml`** in the repo root listing `/`, `/unc`, `/nc-state`, `/statement-of-faith`.
-- **`robots.txt`** in the repo root: allow everything and point to the sitemap.
-- **Structured data**: a JSON-LD `Organization` block on the home page (name, logo, Instagram links) and an
-  `Event` block for the weekly Sunday gathering (211 W Cameron Ave, Chapel Hill, 11:30 am).
-- **Google Search Console**: add the domain at search.google.com/search-console, verify it with the DNS TXT
-  record it gives you, then submit `https://YOUR-DOMAIN/sitemap.xml`. Do this after step 4.
+These all use `https://nc.acts2fellowship.org`. If the final domain is different, change `SITE` in `tools/check.py` and
+search-and-replace the domain in the pages, `sitemap.xml` and `robots.txt`.
 
-These need the final domain name, so add them once you know it.
+What's left for you, after step 4 (the domain points at Vercel):
+1. Go to search.google.com/search-console, add the domain as a **Domain** property, and verify it with the DNS TXT record it gives you.
+2. Under **Sitemaps**, submit `https://nc.acts2fellowship.org/sitemap.xml`.
+3. Paste a page link into an iMessage or https://www.opengraph.xyz to check the preview image.
 
-## 7. Optional: request changes by opening an issue (Claude GitHub Action)
+When you add a page: give it a title, description and `<!-- seo -->` block (copy one from another page) and add it to `sitemap.xml`. The check reminds you.
+
+## 7. Request changes by opening an issue (Claude GitHub Action)
 
 The flow: someone opens an issue describing a change → Claude writes it on a branch and opens a pull request →
 Vercel comments a preview link → you ask for tweaks by commenting `@claude ...` on the PR → a reviewer approves → merge publishes it.
 
-1. Install the Claude GitHub App on the repo: https://github.com/apps/claude (choose the `a2f-nc` organization and the `a2f-nc-website` repo)
-   (or, from Claude Code in this folder, run `/install-github-app`, which does steps 1 to 3 for you).
-2. Add a secret under **Settings → Secrets and variables → Actions**: either `ANTHROPIC_API_KEY`
-   (from console.anthropic.com) or `CLAUDE_CODE_OAUTH_TOKEN` (run `claude setup-token` if you have a Claude Pro or Max plan).
-3. Add `.github/workflows/claude.yml`:
-   ```yaml
-   name: Claude
-   on:
-     issues:
-       types: [opened, assigned, labeled]
-     issue_comment:
-       types: [created]
-     pull_request_review_comment:
-       types: [created]
-     pull_request_review:
-       types: [submitted]
-   permissions:
-     contents: write
-     pull-requests: write
-     issues: write
-     id-token: write
-     actions: read
-   jobs:
-     claude:
-       if: |
-         (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || github.event.label.name == 'claude')) ||
-         (github.event_name != 'issues' && contains(toJSON(github.event), '@claude'))
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-           with:
-             fetch-depth: 1
-         - uses: anthropics/claude-code-action@v1
-           with:
-             claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-             # or: anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-   ```
-4. Use it: open an issue like "@claude On the UNC page, add the Dec 5 worship night to Events", or add the
-   `claude` label to an issue. Claude reads `CLAUDE.md` for the site rules, runs `tools/check.py`, and
-   replies with a link to the branch or pull request.
-5. Keep step 3's branch protection on so nothing reaches the live site without an approval.
-   Only people with write access to the repo can trigger Claude.
+The workflow file is already in the repo (`.github/workflows/claude.yml`). To turn it on:
+
+1. Make sure the Claude GitHub App is installed on the `a2f-nc` organization with access to this repo:
+   https://github.com/apps/claude
+2. Add **one** secret under repo **Settings → Secrets and variables → Actions → New repository secret**:
+   - `CLAUDE_CODE_OAUTH_TOKEN` if you have a Claude Pro or Max plan: run `claude setup-token` in a terminal and paste the token, or
+   - `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use).
+3. Optional: create an issue label named `claude`. Adding it to any issue starts Claude on it.
+4. Try it: open an issue like "@claude On the UNC page, add the Dec 5 worship night to Events".
+   Claude reads `CLAUDE.md` for the site rules, runs `tools/check.py`, and replies on the issue with a link to its branch or pull request.
+
+Only people with write access to the repo can trigger Claude. Keep step 3's branch protection on so nothing reaches the
+live site without an approval.
+
+## 8. Let others see preview links
+
+Vercel protects preview links with a Vercel login by default. If you want other leaders to review previews without a
+Vercel account: **Project → Settings → Deployment Protection → Vercel Authentication → Disabled** (or "Only Production Deployments" off).
+The live site is always public.
