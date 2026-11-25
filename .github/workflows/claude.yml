@@ -88,21 +88,30 @@ jobs:
         run: |
           # Only a pull request whose branch lives in this repo (so it was pushed by someone with write access, or by
           # Claude). A fork can name its branch claude/issue-N-… too, and must never be checked out here.
-          found=$(gh pr list -R "$REPO" --state open --limit 100 --json number,headRefName,isCrossRepository \
+          found=$(gh pr list -R "$REPO" --state open --limit 100 --json number,headRefName,headRefOid,isCrossRepository \
             --jq "[.[] | select(.isCrossRepository == false and (.headRefName | startswith(\"claude/issue-$ISSUE-\")))][0] // empty")
-          branch=""; pr=""
-          if [ -n "$found" ]; then branch=$(jq -r .headRefName <<<"$found"); pr=$(jq -r .number <<<"$found"); fi
+          branch=""; pr=""; sha=""
+          if [ -n "$found" ]; then
+            branch=$(jq -r .headRefName <<<"$found"); pr=$(jq -r .number <<<"$found"); sha=$(jq -r .headRefOid <<<"$found")
+          fi
           asked=$(gh api "repos/$REPO/issues/$ISSUE/comments" --paginate --jq '.[] | select(.user.login == "claude[bot]") | .id' | wc -l)
           involved=false
           if [ -n "$branch" ] || [ "$asked" -gt 0 ] || [[ "$BODY" == *"@claude"* ]] || [[ "$LABELS" == *'"claude"'* ]]; then involved=true; fi
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
           echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "involved=$involved" >> "$GITHUB_OUTPUT"
           echo "Open Claude PR branch: ${branch:-none}; Claude involved: $involved"
       - uses: actions/checkout@v4
         if: steps.find.outputs.involved == 'true'
         with:
-          ref: ${{ steps.find.outputs.branch || github.event.repository.default_branch }}
+          # The exact commit found above, not the branch name, so nothing pushed in between can sneak in.
+          ref: ${{ steps.find.outputs.sha || github.event.repository.default_branch }}
+      - name: Name the checked-out commit after its branch, so Claude can push to it
+        if: steps.find.outputs.branch != ''
+        env:
+          BRANCH: ${{ steps.find.outputs.branch }}
+        run: git checkout -B "$BRANCH"
       - uses: actions/setup-python@v5
         if: steps.find.outputs.involved == 'true'
         with:
