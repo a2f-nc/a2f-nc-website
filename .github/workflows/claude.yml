@@ -1,6 +1,8 @@
 name: Claude
 # Lets people with write access ask Claude for changes:
-#  - open an issue that mentions @claude (or add the "claude" label to an issue)
+#  - open any issue: Claude picks it up automatically if the author has write access to the repo
+#    (issues from anyone else wait until someone with write access adds the "claude" label)
+#  - add the "claude" label to an issue
 #  - comment "@claude ..." on an issue or pull request
 # Needs one repo secret: CLAUDE_CODE_OAUTH_TOKEN (Claude Pro/Max, from `claude setup-token`)
 # or ANTHROPIC_API_KEY (from console.anthropic.com). See SETUP.md step 7.
@@ -15,15 +17,21 @@ on:
     types: [submitted]
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  id-token: write
-  actions: read
+  contents: read
 
 jobs:
   claude:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    # New issues run automatically for people GitHub links to the repo (owner, org member, collaborator, past contributor).
+    # CONTRIBUTOR is included because org members with private membership show up as that. The real gate is the
+    # action itself: it checks that the issue's author has write access and stops if they don't.
     if: |
+      (github.event_name == 'issues' && github.event.action == 'opened' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.issue.author_association)) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude') || github.event.label.name == 'claude')) ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
@@ -46,6 +54,10 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           branch_name_template: "{{prefix}}{{entityType}}-{{entityNumber}}-{{description}}"
+          # A newly opened issue has no @claude in it, so give Claude its task directly. track_progress keeps the
+          # usual flow: a progress comment on the issue and a claude/issue-… branch. Other events leave both off.
+          track_progress: ${{ github.event_name == 'issues' && github.event.action == 'opened' }}
+          prompt: ${{ github.event_name == 'issues' && github.event.action == 'opened' && 'This issue was just opened by someone on the team. Treat it as a request for a change to the website and carry it out. If it is a question or is too unclear to act on, reply on the issue with what you need instead of changing files.' || '' }}
           claude_args: |
             --allowedTools "Bash(python3 tools/check.py),Bash(python3 -m pytest:*),Bash(python -m pytest:*),Bash(gh pr create:*),Bash(gh pr view:*)"
             --append-system-prompt "When you are working from an issue (not a pull request), finish by opening a pull request yourself with gh pr create (base: main). Its body must say 'Closes #<issue number>', explain the change in plain language for non-developer volunteers, and list which pages to check on the Vercel preview. When you are asked for changes on an existing pull request, push to that pull request's branch. Always run python3 tools/check.py and python3 -m pytest before you push, and fix anything they report."

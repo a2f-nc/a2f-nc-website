@@ -95,7 +95,9 @@ The workflow file is already in the repo (`.github/workflows/claude.yml`). To tu
    - `CLAUDE_CODE_OAUTH_TOKEN` if you have a Claude Pro or Max plan: run `claude setup-token` in a terminal and paste the token, or
    - `ANTHROPIC_API_KEY` from console.anthropic.com (pay per use).
 3. Optional: create an issue label named `claude`. Adding it to any issue starts Claude on it.
-4. Try it: open an issue like "@claude On the UNC page, add the Dec 5 worship night to Events".
+4. Try it: open an issue like "On the UNC page, add the Dec 5 worship night to Events". You don't need to write `@claude`:
+   Claude picks up every new issue opened by someone with write access to the repo. Issues from anyone else wait until
+   someone with write access adds the `claude` label, so strangers can't spend the API budget or steer Claude.
    Claude reads `CLAUDE.md` for the site rules, makes the change on a `claude/issue-…` branch, runs `tools/check.py` and the tests,
    and opens a pull request that says "Closes #<issue>". Vercel then comments the preview link on it.
 5. To iterate, comment on the PR, for example "@claude make the date bigger and move it above the photo". Claude pushes to the
