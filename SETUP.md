@@ -28,6 +28,12 @@ The site's repo is **https://github.com/a2f-nc/a2f-nc-website** (it starts out e
 From now on:
 - Each pull request gets a preview deployment, and the Vercel bot comments the link on the PR.
 - Merging into `main` updates the live site.
+- Changes that only touch behind-the-scenes files (`.github/`, `tests/`, `tools/`, the `.md` docs, `requirements-dev.txt`,
+  `pytest.ini`) skip the Vercel build, so no preview is built or published for them. The rule is the `ignoreCommand`
+  in `vercel.json`. If anything is unclear it builds anyway, and the live site (`main`) always builds. (Vercel removes the files listed in `.vercelignore` before it runs this check, which is why the rule lives in `vercel.json` and not in a script under `tools/`.) Vercel's docs say
+  a skipped build shows as "Canceled" and may still count toward the daily deploy limit, so this saves build time and
+  noise more than it lowers the count. If you add a new kind of non-website file, add it to the pattern in that command
+  (and to `.vercelignore`).
 
 ## 3. Protect `main` (so changes go through a pull request)
 
