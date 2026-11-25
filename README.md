@@ -31,8 +31,13 @@ It's a plain static site (HTML, CSS and a little JavaScript, no framework and no
 | `statement-of-faith.html` | What we believe, with Bible references |
 | `get-connected.html` | The UNC get-connected form, NC State sign-up link, photo grid |
 | `other-ministries.html` | ISMP and Area Youth Ministry |
-| `blog.html` | Blog post list (posts themselves are still on the old site, see SETUP.md) |
+| `blog.html` | Blog post list |
+| `blog/*.html` | One page per blog post. The file name matches the post's old Squarespace address |
 | `404.html` | Shown for any page that doesn't exist |
+
+To add a blog post: copy one of the files in `blog/`, rename it, and change the title, description, byline, photo and text.
+Then add a card for it at the top of `blog.html` and update the "Older post / Newer post" links on its neighbors.
+Pages in `blog/` are one folder down, so their links start with `../` (for example `../assets/c2.css`).
 
 Some page text lives in a `<script>` block near the bottom of each page (`window.STORIES = {...}`).
 That's where each story's slides, captions and photos are listed.
@@ -44,7 +49,7 @@ That's where each story's slides, captions and photos are listed.
 | `assets/img/` | Photos, about 1080px on the long side |
 | `assets/vid/` | Reel clips (720x1280 MP4, about 1 MB each) plus a `.jpg` poster frame with the same name |
 | `assets/people/` | Student council and Ben & Helen headshots, ministry logos |
-| `assets/blog/` | Blog post thumbnails |
+| `assets/blog/` | Blog card thumbnails (`postN.jpg`) and the photo at the top of each post (`posts/`) |
 | `assets/sym/`, `assets/brand/` | Campus symbols, A2F tree icon |
 | `assets/fonts/` | Glacial Indifference (brand font, self-hosted) |
 | `tools/check.py` | The site check that also runs on every pull request |
