@@ -76,6 +76,7 @@ def test_shared_header_and_footer_match_on_every_page():
     def norm(block):
         block = re.sub(r' aria-current="page"', "", block)
         block = re.sub(r'(src|href)="/assets/', r'\1="assets/', block)  # 404.html uses absolute paths
+        block = block.replace('="../', '="')  # blog posts sit one folder down
         return re.sub(r'href="/?([a-z-]*)(\.html)?(#\w+)?"', lambda m: f'href="{m.group(1) or "index"}{m.group(3) or ""}"', block)
     navs, foots = {}, {}
     for p in PAGES:

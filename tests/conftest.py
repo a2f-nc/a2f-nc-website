@@ -12,6 +12,8 @@ from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = sorted(f for f in os.listdir(ROOT) if f.endswith(".html"))
+if os.path.isdir(os.path.join(ROOT, "blog")):  # one page per blog post, served at /blog/<slug>
+    PAGES += sorted("blog/" + f for f in os.listdir(os.path.join(ROOT, "blog")) if f.endswith(".html"))
 PHONE = {"width": 390, "height": 844}
 DESKTOP = {"width": 1280, "height": 900}
 

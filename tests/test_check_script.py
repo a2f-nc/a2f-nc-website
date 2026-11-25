@@ -17,6 +17,7 @@ def site(tmp_path):
     os.makedirs(tmp_path / "tools")
     os.makedirs(tmp_path / "assets" / "img")
     os.makedirs(tmp_path / "assets" / "og")
+    os.makedirs(tmp_path / "blog")
     shutil.copy(os.path.join(ROOT, "tools", "check.py"), tmp_path / "tools" / "check.py")
     (tmp_path / "assets" / "c2.css").write_text("body{}")
     (tmp_path / "assets" / "img" / "a.jpg").write_bytes(b"jpg")
@@ -83,3 +84,15 @@ def test_links_to_old_site_only_warn(site):
     code, out = run(site)
     assert code == 0
     assert "will break once the domain points here" in out
+
+
+def test_blog_post_links_resolve_from_its_folder(site):
+    post = GOOD_PAGE.replace('href="https://nc.acts2fellowship.org/"', 'href="https://nc.acts2fellowship.org/blog/hello"')
+    post = post.replace('"assets/', '"../assets/').replace('href="index.html"', 'href="../index.html"')
+    (site / "blog" / "hello.html").write_text(post)
+    (site / "sitemap.xml").write_text("<loc>https://nc.acts2fellowship.org/</loc><loc>https://nc.acts2fellowship.org/blog/hello</loc>")
+    code, out = run(site)
+    assert code == 0, out
+    (site / "blog" / "hello.html").write_text(post.replace('href="../index.html"', 'href="index.html"'))
+    code, out = run(site)
+    assert code == 1 and "blog/hello.html" in out and "doesn't exist" in out

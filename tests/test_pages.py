@@ -43,7 +43,7 @@ def test_skip_link_is_first_tab_stop(phone, base_url, name):
 
 
 def test_desktop_nav_marks_current_page(desktop, base_url):
-    for name, label in [("index.html", "Home"), ("unc.html", "UNC"), ("nc-state.html", "NC State"), ("our-story.html", "About")]:
+    for name, label in [("index.html", "Home"), ("unc.html", "UNC"), ("nc-state.html", "NC State"), ("our-story.html", "About"), ("blog.html", "Blog")]:
         desktop.goto(f"{base_url}/{name}")
         current = desktop.locator(".topnav [aria-current='page']")
         assert current.count() == 1 and current.inner_text().strip() == label
