@@ -1,3 +1,3 @@
 # Only for running the tests (locally or in CI). The website itself has no dependencies.
-pytest==8.*
+pytest==9.*
 playwright==1.*
