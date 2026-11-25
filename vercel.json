@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "bash tools/vercel-ignore.sh || exit 1",
+  "ignoreCommand": "[ \"$VERCEL_ENV\" = production ] && exit 1; f=$(git diff --name-only \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD) || exit 1; [ -n \"$f\" ] && ! echo \"$f\" | grep -qvE '^(\\.github|tests|tools)/|^[A-Z]+\\.md$|^(requirements-dev\\.txt|pytest\\.ini)$'",
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
