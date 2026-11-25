@@ -108,3 +108,21 @@ def test_dependabot_only_auto_merges_after_check_and_test():
     cfg = read(".github/dependabot.yml")
     assert cfg.count("update-types: [minor, patch]") == 2, "grouped monthly updates must leave out major versions"
     assert cfg.count("applies-to: security-updates") == 2
+
+
+
+def test_claude_workflow_only_auto_starts_for_the_team():
+    """New issues start Claude without @claude, but only for authors GitHub ties to the repo,
+    and the write permissions stay on the job, not the whole workflow."""
+    wf = read(".github/workflows/claude.yml")
+    top, job = wf.split("\njobs:\n", 1)
+    assert top.split("\npermissions:\n", 1)[1].strip() == "contents: read", "workflow default must stay read-only"
+    assert "      contents: write" in job
+    cond = job.split("if: |", 1)[1].split("runs-on:", 1)[0]
+    opened = [line for line in cond.splitlines() if "github.event.action == 'opened'" in line]
+    assert opened, "newly opened issues should start Claude"
+    assert all("author_association" in line for line in opened), "auto-start must check who opened the issue"
+    assert "NONE" not in cond and "FIRST_TIME" not in cond, "strangers' issues must not auto-start"
+    assert "allowed_non_write_users" not in wf, "the action's own write-access check must stay on"
+    prompt = [line for line in job.splitlines() if line.strip().startswith("prompt:")]
+    assert len(prompt) == 1 and "github.event.action == 'opened'" in prompt[0], "the prompt must only apply to new issues"
