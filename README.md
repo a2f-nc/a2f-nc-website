@@ -78,4 +78,4 @@ Every pull request runs two jobs on GitHub ("Check site"):
 
 If a test fails, the PR shows a red ✗ with the reason. Fix the page (not the test) unless the change was intentional.
 
-Anyone on the team can ask for a website change by opening an issue that describes it, and Claude will open a pull request for it.
+Anyone on our team can ask for a website change by opening an issue that describes it, and Claude will open a pull request for it.
