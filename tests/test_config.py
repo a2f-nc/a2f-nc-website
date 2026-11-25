@@ -34,6 +34,36 @@ def test_vercelignore_keeps_private_files_off_the_site():
         assert name in ignored, f"{name} would be published on the website"
 
 
+def test_vercel_skips_builds_only_for_files_that_are_not_the_website():
+    import subprocess, tempfile
+    cfg = json.loads(read("vercel.json"))
+    assert "tools/vercel-ignore.sh" in cfg["ignoreCommand"] and cfg["ignoreCommand"].endswith("|| exit 1")
+    script = os.path.join(ROOT, "tools", "vercel-ignore.sh")
+
+    def run(env_sha, d):
+        env = {**os.environ, "VERCEL_GIT_PREVIOUS_SHA": env_sha} if env_sha else {k: v for k, v in os.environ.items() if k != "VERCEL_GIT_PREVIOUS_SHA"}
+        return subprocess.run(["bash", script], cwd=d, env=env, capture_output=True).returncode
+
+    with tempfile.TemporaryDirectory() as d:
+        def git(*a):
+            return subprocess.run(["git", "-c", "user.email=a@b", "-c", "user.name=a", *a], cwd=d, check=True, capture_output=True, text=True).stdout.strip()
+        def commit(path):
+            os.makedirs(os.path.dirname(os.path.join(d, path)) or d, exist_ok=True)
+            open(os.path.join(d, path), "a").write("x\n")
+            git("add", "-A"); git("commit", "-qm", path)
+            return git("rev-parse", "HEAD")
+        git("init", "-q")
+        base = commit("index.html")
+        commit(".github/workflows/x.yml"); commit("tests/t.py"); commit("README.md")
+        assert run(base, d) == 0, "workflow, test and doc changes should skip the build"
+        for site_file in ["unc.html", "assets/c2.css", "vercel.json", "assets/img/a.jpg", "sitemap.xml"]:
+            prev = git("rev-parse", "HEAD")
+            commit(site_file)
+            assert run(prev, d) == 1, f"{site_file} must still deploy"
+        assert run(None, d) == 1, "no previous commit known: build"
+        assert run("deadbeef", d) == 1, "unusable previous commit: build"
+
+
 def test_sitemap_lists_every_public_page_and_nothing_else():
     locs = re.findall(r"<loc>([^<]+)</loc>", read("sitemap.xml"))
     assert sorted(locs) == sorted(SITE + slug(p) for p in PUBLIC)

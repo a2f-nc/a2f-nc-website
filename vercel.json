@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "bash tools/vercel-ignore.sh || exit 1",
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
