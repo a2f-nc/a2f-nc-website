@@ -84,8 +84,10 @@ When you add a page: give it a title, description and `<!-- seo -->` block (copy
 
 ## 7. Request changes by opening an issue (Claude GitHub Action)
 
-The flow: someone opens an issue describing a change → Claude writes it on a branch and opens a pull request →
-Vercel comments a preview link → you ask for tweaks by commenting `@claude ...` on the PR → a reviewer approves → merge publishes it.
+The flow, all in the issue: someone on the team opens an issue describing a change → Claude starts on it right away,
+posts its progress on the issue, and opens a pull request → the Vercel preview link is posted on the issue → you reply on
+the issue with tweaks and Claude updates the same pull request → a reviewer approves and merges the PR, which publishes it
+and closes the issue.
 
 The workflow file is already in the repo (`.github/workflows/claude.yml`). To turn it on:
 
@@ -99,11 +101,15 @@ The workflow file is already in the repo (`.github/workflows/claude.yml`). To tu
    Claude picks up every new issue opened by someone with write access to the repo. Issues from anyone else wait until
    someone with write access adds the `claude` label, so strangers can't spend the API budget or steer Claude.
    Claude reads `CLAUDE.md` for the site rules, makes the change on a `claude/issue-…` branch, runs `tools/check.py` and the tests,
-   and opens a pull request that says "Closes #<issue>". Vercel then comments the preview link on it.
-5. To iterate, comment on the PR, for example "@claude make the date bigger and move it above the photo". Claude pushes to the
-   same branch and the same preview link updates about a minute later.
+   and opens a pull request that says "Closes #<issue>". The Vercel preview link is then posted on the issue (and on the PR).
+5. To iterate, just reply on the issue, for example "make the date bigger and move it above the photo". No `@claude`
+   needed. Claude pushes to the same pull request, replies on the issue, and the preview link on the issue updates about
+   a minute later. (Commenting `@claude ...` on the pull request itself still works too.)
+6. The final approve and merge happen on the pull request, because GitHub only allows them there. The issue links to it.
 
-Only people with write access to the repo can trigger Claude. Keep step 3's branch protection on so nothing reaches the
+Only people with write access to the repo can trigger Claude. Issues and comments from anyone else are ignored.
+To stop strangers from posting at all, use the org's Settings → Moderation → Interaction limits ("Limit to repository
+collaborators", renew every 6 months). Keep step 3's branch protection on so nothing reaches the
 live site without an approval.
 
 ## 8. Let others see preview links

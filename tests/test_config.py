@@ -111,18 +111,48 @@ def test_dependabot_only_auto_merges_after_check_and_test():
 
 
 
-def test_claude_workflow_only_auto_starts_for_the_team():
-    """New issues start Claude without @claude, but only for authors GitHub ties to the repo,
-    and the write permissions stay on the job, not the whole workflow."""
-    wf = read(".github/workflows/claude.yml")
-    top, job = wf.split("\njobs:\n", 1)
+
+def _jobs(wf):
+    """Split a workflow file into {job name: job text} without needing a YAML library."""
+    body = wf.split("\njobs:\n", 1)[1]
+    return dict(re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:\n|\Z)", body, re.S | re.M))
+
+
+@pytest.mark.parametrize("name", ["claude.yml", "issue-preview-link.yml"])
+def test_claude_workflows_are_read_only_by_default(name):
+    top = read(".github/workflows/" + name).split("\njobs:\n", 1)[0]
     assert top.split("\npermissions:\n", 1)[1].strip() == "contents: read", "workflow default must stay read-only"
-    assert "      contents: write" in job
-    cond = job.split("if: |", 1)[1].split("runs-on:", 1)[0]
-    opened = [line for line in cond.splitlines() if "github.event.action == 'opened'" in line]
-    assert opened, "newly opened issues should start Claude"
-    assert all("author_association" in line for line in opened), "auto-start must check who opened the issue"
-    assert "NONE" not in cond and "FIRST_TIME" not in cond, "strangers' issues must not auto-start"
+
+
+def test_claude_only_starts_without_mention_for_the_team():
+    """New issues and issue comments start Claude without @claude, but only for people GitHub ties to the repo,
+    never for bots, and the Claude action's own write-access check stays on."""
+    wf = read(".github/workflows/claude.yml")
     assert "allowed_non_write_users" not in wf, "the action's own write-access check must stay on"
-    prompt = [line for line in job.splitlines() if line.strip().startswith("prompt:")]
-    assert len(prompt) == 1 and "github.event.action == 'opened'" in prompt[0], "the prompt must only apply to new issues"
+    jobs = _jobs(wf)
+    team = "contains(fromJSON('[\"OWNER\",\"MEMBER\",\"COLLABORATOR\",\"CONTRIBUTOR\"]')"
+    for line in jobs["claude"].split("if: |", 1)[1].split("runs-on:", 1)[0].splitlines():
+        if "||" in line or "(github" in line:
+            assert "@claude" in line or "label.name == 'claude'" in line or (team in line and "author_association" in line), \
+                f"this trigger needs @claude, the label, or a team author: {line.strip()}"
+    feedback = jobs["issue-feedback"].split("runs-on:", 1)[0]
+    assert team in feedback and "comment.author_association" in feedback, "issue feedback must come from the team"
+    assert "user.type != 'Bot'" in feedback, "Claude must not answer its own or other bots' comments"
+    assert "!github.event.issue.pull_request" in feedback
+    prompt = [l for l in jobs["claude"].splitlines() if l.strip().startswith("prompt:")]
+    assert len(prompt) == 1 and "github.event.action == 'opened'" in prompt[0], "that prompt must only apply to new issues"
+
+
+def test_feedback_only_pushes_to_the_issues_own_pull_request():
+    job = _jobs(read(".github/workflows/claude.yml"))["issue-feedback"]
+    assert 'startswith(\\"claude/issue-$ISSUE-\\")' in job, "must look up the PR for this issue's own branch"
+    assert "ref: ${{ steps.find.outputs.branch" in job
+    assert "Bash(git push origin HEAD)" in job and "Bash(git push:" not in job, "only a plain push of the checked-out branch"
+    assert "Bash(git checkout" not in job and "Bash(git switch" not in job
+
+
+def test_preview_link_only_goes_to_claude_issue_branches():
+    wf = read(".github/workflows/issue-preview-link.yml")
+    assert "^claude/issue-([0-9]+)-" in wf
+    assert "state == 'success'" in wf
+    assert "${{ github.event" not in wf.split("run: |", 1)[1], "event values must reach the script through env, not inline"
