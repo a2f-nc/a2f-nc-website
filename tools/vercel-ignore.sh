@@ -5,10 +5,19 @@
 # Anything unexpected exits 1, so the worst case is an extra deploy, never a missing one.
 # The "behind the scenes" list matches .vercelignore: files that are not part of the website.
 
-# Vercel gives us the last commit it handled on this branch. With no answer, just build.
+# Compare against the last commit Vercel handled on this branch when it tells us (VERCEL_GIT_PREVIOUS_SHA).
+# Vercel often leaves that empty, so the fallback is the commit just before this one. That is exact for the
+# usual one-commit push. For the live site (the main branch) we don't guess: with no answer, build.
 base="${VERCEL_GIT_PREVIOUS_SHA:-}"
-[ -n "$base" ] || { echo "No previous commit known: building."; exit 1; }
-git cat-file -e "$base^{commit}" 2>/dev/null || { echo "Previous commit not available: building."; exit 1; }
+if [ -n "$base" ]; then
+  git cat-file -e "$base^{commit}" 2>/dev/null || { echo "Previous commit not available: building."; exit 1; }
+else
+  if [ "${VERCEL_GIT_COMMIT_REF:-}" = "main" ] || [ "${VERCEL_ENV:-}" = "production" ]; then
+    echo "No previous commit known for the live site: building."; exit 1
+  fi
+  base="HEAD^"
+  git cat-file -e "$base^{commit}" 2>/dev/null || { echo "No earlier commit to compare: building."; exit 1; }
+fi
 
 changed=$(git diff --name-only "$base" HEAD) || { echo "Could not compare commits: building."; exit 1; }
 [ -n "$changed" ] || { echo "No changed files found: building."; exit 1; }

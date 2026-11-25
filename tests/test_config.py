@@ -40,8 +40,11 @@ def test_vercel_skips_builds_only_for_files_that_are_not_the_website():
     assert "tools/vercel-ignore.sh" in cfg["ignoreCommand"] and cfg["ignoreCommand"].endswith("|| exit 1")
     script = os.path.join(ROOT, "tools", "vercel-ignore.sh")
 
-    def run(env_sha, d):
-        env = {**os.environ, "VERCEL_GIT_PREVIOUS_SHA": env_sha} if env_sha else {k: v for k, v in os.environ.items() if k != "VERCEL_GIT_PREVIOUS_SHA"}
+    def run(env_sha, d, **extra):
+        env = {k: v for k, v in os.environ.items() if not k.startswith("VERCEL_")}
+        if env_sha:
+            env["VERCEL_GIT_PREVIOUS_SHA"] = env_sha
+        env.update(extra)
         return subprocess.run(["bash", script], cwd=d, env=env, capture_output=True).returncode
 
     with tempfile.TemporaryDirectory() as d:
@@ -60,7 +63,13 @@ def test_vercel_skips_builds_only_for_files_that_are_not_the_website():
             prev = git("rev-parse", "HEAD")
             commit(site_file)
             assert run(prev, d) == 1, f"{site_file} must still deploy"
-        assert run(None, d) == 1, "no previous commit known: build"
+        commit("README.md")
+        assert run(None, d) == 0, "no previous commit known: compare with the commit before (a docs-only last commit skips)"
+        assert run(None, d, VERCEL_GIT_COMMIT_REF="main") == 1, "the live site never guesses: build"
+        assert run(None, d, VERCEL_ENV="production") == 1, "the live site never guesses: build"
+        commit("assets/c2.js")
+        assert run(None, d) == 1, "no previous commit known and a site file changed: build"
+        assert run(git("rev-parse", "HEAD"), d) == 1, "nothing changed since the previous commit: build"
         assert run("deadbeef", d) == 1, "unusable previous commit: build"
 
 
