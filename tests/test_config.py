@@ -203,3 +203,11 @@ def test_signin_check_only_runs_by_hand_and_never_touches_the_repo():
     assert "\non: workflow_dispatch\n" in wf, "only people with write access should be able to start it"
     assert "contents: write" not in wf and "actions/checkout" not in wf
     assert "${{ github.event" not in wf and "${{ steps" not in wf.split("run: |", 1)[1], "no event text inside scripts"
+
+
+def test_claude_model_is_pinned_and_opus_needs_a_label():
+    wf = read(".github/workflows/claude.yml")
+    assert "'claude-sonnet-5-5'" in wf and "'claude-opus-5-5'" in wf
+    assert "contains(github.event.issue.labels.*.name, 'claude-opus')" in wf
+    # every Claude step must use the chosen model
+    assert wf.count("--model ${{ env.CLAUDE_MODEL }}") == wf.count("claude_args: |")

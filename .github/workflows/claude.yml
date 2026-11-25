@@ -17,6 +17,11 @@ on:
   pull_request_review:
     types: [submitted]
 
+env:
+  # Claude uses Sonnet 5.5 unless the issue (or pull request) has the "claude-opus" label, which switches it to Opus 5.5.
+  # The label is read each time Claude runs, so add it before replying on the issue to have Claude retry with Opus.
+  CLAUDE_MODEL: ${{ (contains(github.event.issue.labels.*.name, 'claude-opus') || contains(github.event.pull_request.labels.*.name, 'claude-opus')) && 'claude-opus-5-5' || 'claude-sonnet-5-5' }}
+
 permissions:
   contents: read
 
@@ -63,6 +68,7 @@ jobs:
           track_progress: ${{ github.event_name == 'issues' && github.event.action == 'opened' }}
           prompt: ${{ github.event_name == 'issues' && github.event.action == 'opened' && 'This issue was just opened by someone on the team. Treat it as a request for a change to the website and carry it out. If it is a question or is too unclear to act on, reply on the issue with what you need instead of changing files.' || '' }}
           claude_args: |
+            --model ${{ env.CLAUDE_MODEL }}
             --allowedTools "Bash(python3 tools/check.py),Bash(python3 -m pytest:*),Bash(python -m pytest:*),Bash(gh pr create:*),Bash(gh pr view:*)"
             --append-system-prompt "When you are working from an issue (not a pull request), finish by opening a pull request yourself with gh pr create (base: main). Its body must say 'Closes #<issue number>', explain the change in plain language for non-developer volunteers, and list which pages to check on the Vercel preview. Then update your comment on the issue with a link to the pull request and a note that the preview link will be posted on the issue in a minute or two, and that they can reply on the issue with any changes. When you are asked for changes on an existing pull request, push to that pull request's branch. Always run python3 tools/check.py and python3 -m pytest before you push, and fix anything they report."
 
@@ -156,6 +162,7 @@ jobs:
             If it is a question or a thank-you rather than a change request, just reply on the issue. Never push to any
             other branch, and never merge.
           claude_args: |
+            --model ${{ env.CLAUDE_MODEL }}
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git status),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git push origin HEAD),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh pr view:*),Bash(python3 tools/check.py),Bash(python3 -m pytest:*),Bash(python -m pytest:*)"
       # No pull request yet (Claude asked a question, or was asked with @claude): pick the issue back up.
       - name: Pick the issue back up
@@ -173,5 +180,6 @@ jobs:
           track_progress: true
           prompt: "A team member just replied on this issue. Read the whole issue and its comments, then carry out the requested website change. If it is still too unclear to act on, reply on the issue with what you need."
           claude_args: |
+            --model ${{ env.CLAUDE_MODEL }}
             --allowedTools "Bash(python3 tools/check.py),Bash(python3 -m pytest:*),Bash(python -m pytest:*),Bash(gh pr create:*),Bash(gh pr view:*)"
             --append-system-prompt "Finish by opening a pull request yourself with gh pr create (base: main). Its body must say 'Closes #<issue number>', explain the change in plain language for non-developer volunteers, and list which pages to check on the Vercel preview. Then update your comment on the issue with a link to the pull request, and say they can reply on the issue with any changes. Always run python3 tools/check.py and python3 -m pytest before you push, and fix anything they report."
