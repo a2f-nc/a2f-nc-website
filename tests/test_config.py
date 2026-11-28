@@ -211,3 +211,16 @@ def test_claude_model_is_pinned_and_opus_needs_a_label():
     assert "contains(github.event.issue.labels.*.name, 'claude-opus')" in wf
     # every Claude step must use the chosen model
     assert wf.count("--model ${{ env.CLAUDE_MODEL }}") == wf.count("claude_args: |")
+
+
+def test_blog_pull_requests_get_the_site_checks_and_tests():
+    """GitHub skips workflows for pull requests made with the built-in token, so the blog workflow must start
+    "Check site" itself (and check-site.yml must allow that), keeping the required check and test results on the PR."""
+    check = read(".github/workflows/check-site.yml")
+    assert "\n  workflow_dispatch:\n" in check.split("\njobs:\n", 1)[0]
+    job = _jobs(read(".github/workflows/new-blog-post.yml"))["build"]
+    assert "actions: write" in job, "needed to start another workflow"
+    step = job.split("Start the site checks and tests on the pull request", 1)[1].split("- name:", 1)[0]
+    assert "gh workflow run check-site.yml" in step
+    assert '--ref "claude/issue-$ISSUE-blog-$SLUG"' in step, "must run on the new pull request's own branch"
+    assert "${{ github.event" not in step.split("run: |", 1)[1], "event text must not go inside scripts"

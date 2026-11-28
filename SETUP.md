@@ -137,9 +137,11 @@ live site without an approval.
 
 Opening a **New blog post** issue (Issues → New issue → New blog post) does not use Claude for the first draft:
 `.github/workflows/new-blog-post.yml` runs `tools/new_post.py` and opens the pull request. Replies on that issue go to Claude as usual.
-GitHub does not start the "Check site" tests on pull requests opened with the built-in workflow token. To have them run,
-create a fine-grained personal access token (this repo only; Contents and Pull requests: read and write) and save it as
-the repo secret `BLOG_BOT_TOKEN`. The workflow runs `tools/check.py` itself either way.
+GitHub does not start other workflows for pull requests opened with the built-in workflow token, so after opening the
+pull request the workflow starts "Check site" itself on the new branch (it needs no setup). The **check** and **test**
+results then appear on the pull request like any other run, so the required checks in step 3 are satisfied.
+Optional: create a fine-grained personal access token (this repo only; Contents and Pull requests: read and write) and
+save it as the repo secret `BLOG_BOT_TOKEN`; the workflow then skips the manual start because GitHub starts the checks the usual way.
 
 ## 8. Let others see preview links
 

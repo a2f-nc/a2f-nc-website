@@ -3,6 +3,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # new-blog-post.yml starts this by hand for the pull request it opens, because GitHub does not
+  # start workflows for pull requests created with the built-in token. The results still count on the PR.
+  workflow_dispatch:
 # The check and test jobs only read the code; the Dependabot job below asks for more on its own.
 permissions:
   contents: read

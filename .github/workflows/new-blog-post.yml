@@ -3,9 +3,10 @@ name: New blog post
 # tools/new_post.py builds the page from the issue and this workflow opens the pull request. No AI is involved.
 # The branch is named claude/issue-<N>-blog-<slug>, so a reply on the issue brings Claude in to change that same
 # pull request (claude.yml "issue-feedback") and the preview link gets posted on the issue (issue-preview-link.yml).
-# Optional: a BLOG_BOT_TOKEN repo secret (a fine-grained token with Contents and Pull requests write) makes GitHub
-# start the "Check site" tests on this pull request. Without it the pull request still opens, but GitHub does not
-# start other workflows for pull requests created with the built-in token (see SETUP.md).
+# GitHub does not start other workflows for pull requests created with the built-in token, so without a
+# BLOG_BOT_TOKEN repo secret this workflow starts "Check site" (check-site.yml) itself on the new branch. Its
+# check and test results then show on the pull request like any other run (see SETUP.md).
+# Optional: BLOG_BOT_TOKEN (a fine-grained token with Contents and Pull requests write) makes GitHub start them the usual way.
 on:
   issues:
     types: [opened]
@@ -22,6 +23,7 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      actions: write
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.BLOG_BOT_TOKEN || github.token }}
@@ -79,6 +81,14 @@ jobs:
           url=$(gh pr create -R "$REPO" --base main --head "$branch" --title "Blog post: $TITLE" --body-file "$RUNNER_TEMP/pr.md")
           printf 'I built your post and opened %s.\n\nA preview link will appear here in a minute or two. Reply on this issue if you want anything changed; when it looks right, approve and merge the pull request to publish it.\n' "$url" > "$RUNNER_TEMP/done.txt"
           gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/done.txt"
+      - name: Start the site checks and tests on the pull request
+        # Only needed when the pull request was made with the built-in token (no BLOG_BOT_TOKEN).
+        env:
+          SLUG: ${{ steps.build.outputs.slug }}
+          BLOG_BOT_TOKEN: ${{ secrets.BLOG_BOT_TOKEN }}
+        run: |
+          if [ -n "$BLOG_BOT_TOKEN" ]; then echo "BLOG_BOT_TOKEN is set, so GitHub starts the checks itself."; exit 0; fi
+          GH_TOKEN="$GITHUB_TOKEN" gh workflow run check-site.yml -R "$REPO" --ref "claude/issue-$ISSUE-blog-$SLUG"
       - name: Tell the issue if opening the pull request failed
         if: failure() && steps.build.outcome == 'success'
         run: |
