@@ -133,6 +133,14 @@ To stop strangers from posting at all, use the org's Settings → Moderation →
 collaborators", renew every 6 months). Keep step 3's branch protection on so nothing reaches the
 live site without an approval.
 
+### Blog posts
+
+Opening a **New blog post** issue (Issues → New issue → New blog post) does not use Claude for the first draft:
+`.github/workflows/new-blog-post.yml` runs `tools/new_post.py` and opens the pull request. Replies on that issue go to Claude as usual.
+GitHub does not start the "Check site" tests on pull requests opened with the built-in workflow token. To have them run,
+create a fine-grained personal access token (this repo only; Contents and Pull requests: read and write) and save it as
+the repo secret `BLOG_BOT_TOKEN`. The workflow runs `tools/check.py` itself either way.
+
 ## 8. Let others see preview links
 
 Vercel protects preview links with a Vercel login by default. If you want other leaders to review previews without a

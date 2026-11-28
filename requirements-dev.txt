@@ -1,3 +1,4 @@
 # Only for running the tests (locally or in CI). The website itself has no dependencies.
 pytest==9.*
 playwright==1.*
+pillow==13.*   # tools/new_post.py resizes blog photos
