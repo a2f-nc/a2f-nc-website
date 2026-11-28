@@ -81,6 +81,8 @@ jobs:
           gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/done.txt"
       - name: Tell the issue if opening the pull request failed
         if: failure() && steps.build.outcome == 'success'
+        env:
+          SLUG: ${{ steps.build.outputs.slug }}
         run: |
-          printf 'I built the post but could not open the pull request. Ask a developer to look at the workflow run: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$REPO" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/fail2.txt"
+          printf 'I built the post and saved it on the branch `%s`, but could not open the pull request. The most common reason is that GitHub Actions is not allowed to create pull requests: an admin can turn that on under Settings → Actions → General → Workflow permissions ("Allow GitHub Actions to create and approve pull requests"). Details: %s/%s/actions/runs/%s\n' "claude/issue-$ISSUE-blog-${SLUG:-unknown}" "$GITHUB_SERVER_URL" "$REPO" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/fail2.txt"
           gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/fail2.txt"
