@@ -228,19 +228,30 @@ def to_html(md):
     return "\n".join(out)
 
 
-def summary_of(md, limit=200):
+def summary_of(md, author="", low=50, high=170):
+    """The card text and meta description: the post's opening words, kept between `low` and `high` characters
+    (tests/test_config.py checks that range for every page)."""
+    texts = []
     for block in re.split(r"\n\s*\n", md.replace("\r\n", "\n")):
         t = IMG_HTML.sub("", IMG_MD.sub("", block))
         t = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", t)
         t = re.sub(r"^\s*(#{1,6}|>|[-*+]|\d+[.)])\s*", "", t, flags=re.M)
         t = re.sub(r"[*_`]", "", t)
         t = " ".join(t.split())
-        if len(t) > 3:
-            if len(t) <= limit:
-                return t
-            cut = t[:160].rsplit(" ", 1)[0].rstrip(" ,;:.—-")
-            return cut + "…"
-    raise PostError("The post needs some text in it.")
+        if len(t) > 1:
+            texts.append(t)
+    if not texts:
+        raise PostError("The post needs some text in it.")
+    out = texts[0]
+    for t in texts[1:]:
+        if len(out) >= low:
+            break
+        out += " " + t
+    if len(out) > high:
+        out = out[:high - 10].rsplit(" ", 1)[0].rstrip(" ,;:.\u2014-") + "\u2026"
+    if len(out) < low:
+        out += " " + (f"A post by {author} on" if author else "A post on") + " the Acts2Fellowship NC blog."
+    return out
 
 
 # ---------- the site ----------
@@ -296,7 +307,7 @@ def build_post(root, title, author, body_md, image_src, date=None, hero_alt="", 
         body_md = body_md.replace(whole, md_img, 1)
 
     hero_alt = good_alt(hero_alt, f"Photo for “{title}”")
-    summary = summary_of(body_md)
+    summary = summary_of(body_md, author)
     body_html = to_html(body_md)
 
     # the new page, copied from the newest post
