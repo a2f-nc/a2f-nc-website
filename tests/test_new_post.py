@@ -67,6 +67,12 @@ def test_page_has_title_byline_text_and_photos(built):
     assert "<strong>world</strong>" in page and "<em>test</em>" in page and '<a href="https://example.com">link</a>' in page
     assert "<h2>A heading</h2>" in page and "<ul><li>one</li><li>two</li></ul>" in page
     assert 'alt="Sunday lunch with friends"' in page
+    import re
+    desc = re.search(r'<meta name="description" content="([^"]+)"', page).group(1)
+    assert 50 <= len(desc) <= 170, desc  # the site's SEO test requires this range
+    import re
+    desc = re.search(r'<meta name="description" content="([^"]+)"', page).group(1)
+    assert 50 <= len(desc) <= 170, desc  # the site's SEO test requires this range
     assert '<img src="../assets/blog/posts/why-i-love-chapel-hills-sundays-1.jpg"' in page
     assert page.count("why-i-love-chapel-hills-sundays-1.jpg") == 2 and "sundays-2.jpg" not in page  # same photo twice, saved once
     assert "<h3>A smaller heading</h3>" in page
@@ -113,9 +119,13 @@ def test_markdown_and_summary():
     assert new_post.to_html("a\nb\n\n1. x\n2. y") == "<p>a<br>\nb</p>\n<ol><li>x</li><li>y</li></ol>"
     assert new_post.to_html("<script>x</script>") == "<p>&lt;script&gt;x&lt;/script&gt;</p>"
     assert new_post.to_html("# Big") == "<h2>Big</h2>"
-    assert new_post.summary_of("![i](x.png)\n\nShort **intro** here.\n\nMore.") == "Short intro here."
+    assert new_post.summary_of("![i](x.png)\n\nShort **intro** here. It keeps going for a little while.\n\nMore.") == "Short intro here. It keeps going for a little while."
     long = new_post.summary_of("word " * 80)
-    assert long.endswith("…") and len(long) <= 162
+    assert long.endswith("\u2026") and len(long) <= 170
+    assert 50 <= len(new_post.summary_of("x" * 190 + " tail")) <= 170
+    tiny = new_post.summary_of("> Hi from Chapel Hill\nJon Lee", "Jon Lee")  # too short: gets a lead-in so it stays 50-170 characters
+    assert tiny.startswith("Hi from Chapel Hill Jon Lee") and 50 <= len(tiny) <= 170
+    assert 50 <= len(new_post.summary_of("One.\n\nTwo short paragraphs that together are long enough.")) <= 170
     assert new_post.make_slug("How Tacos Changed My College Life!") == "how-tacos-changed-my-college-life"
 
 
