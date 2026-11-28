@@ -71,39 +71,46 @@ def sub_once(pattern, repl, text, what, flags=re.S):
 
 # ---------- photos ----------
 
-class _KeepAuthOnlyOnGitHub(urllib.request.HTTPRedirectHandler):
+def is_github_host(url):
+    """Exactly github.com or *.githubusercontent.com over https. Only these ever get our token."""
+    u = urllib.parse.urlparse(url)
+    h = u.hostname or ""
+    return u.scheme == "https" and (h == "github.com" or h.endswith(".githubusercontent.com"))
+
+
+class _SafeRedirects(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if urllib.parse.urlparse(newurl).scheme != "https":
+            raise PostError("A photo link redirected to a non-https address, so I stopped.")
         new = super().redirect_request(req, fp, code, msg, headers, newurl)
-        if new is not None and "github.com" not in urllib.parse.urlparse(newurl).netloc:
+        if new is not None and not is_github_host(newurl):
             new.headers.pop("Authorization", None)
         return new
 
 
-def load_bytes(src):
-    """Read a photo from a local path or an https link (GitHub issue attachments)."""
-    if os.path.isfile(src):
+def load_bytes(src, allow_local=False):
+    """Read a photo: a local file (only when the script is run by hand) or a GitHub attachment link."""
+    if allow_local and os.path.isfile(src):
         with open(src, "rb") as f:
             return f.read()
-    if not re.match(r"https://", src):
-        raise PostError(f"I couldn't find the photo `{src}`.")
+    if not is_github_host(src):
+        raise PostError("Photos need to be attached to the issue itself: drag them into the box instead of linking to another website.")
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-    opener = urllib.request.build_opener(_KeepAuthOnlyOnGitHub)
+    opener = urllib.request.build_opener(_SafeRedirects)
+    attempts = [{}] + ([{"Authorization": f"Bearer {token}"}] if token else [])
     last = None
-    for headers in ({}, {"Authorization": f"Bearer {token}"} if token else None):
-        if headers is None:
-            break
+    for headers in attempts:
         req = urllib.request.Request(src, headers={"User-Agent": "a2f-new-post", **headers})
         try:
             with opener.open(req, timeout=60) as r:
                 data = r.read(30_000_001)
-            if len(data) > 30_000_000:
-                raise PostError("A photo is bigger than 30 MB. Please use a smaller one.")
-            return data
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             last = e
-        except urllib.error.URLError as e:
-            last = e
-    raise PostError(f"I couldn't download a photo from {src} ({last}). Try attaching it again.")
+            continue
+        if len(data) > 30_000_000:
+            raise PostError("A photo is bigger than 30 MB. Please use a smaller one.")
+        return data
+    raise PostError(f"I couldn't download a photo ({last}). Try attaching it again.")
 
 
 def open_image(data, src):
@@ -156,13 +163,26 @@ def find_images(text):
 
 # ---------- Markdown to HTML (the small subset the posts use) ----------
 
+SAFE_LINK = re.compile(r"^(https?://|mailto:|#|/|\.\./)", re.I)
+SAFE_IMG = "../assets/blog/posts/"
+
+
+def _link(m):
+    label, url = m.group(1), m.group(2)
+    return f'<a href="{url}">{label}</a>' if SAFE_LINK.match(url) else label
+
+
+def _img(m):
+    alt, url = m.group(1), m.group(2)
+    return f'<img src="{url}" alt="{alt}" loading="lazy">' if url.startswith(SAFE_IMG) else alt
+
+
 def inline(text):
-    text = esc(text)
+    text = attr(text.replace("\x00", ""))
     codes = []
     text = re.sub(r"`([^`]+)`", lambda m: codes.append(m.group(1)) or f"\x00{len(codes) - 1}\x00", text)
-    text = re.sub(r"!\[([^\]]*)\]\(\s*(?:&lt;)?([^)\s]+?)(?:&gt;)?\s*\)",
-                  lambda m: f'<img src="{m.group(2)}" alt="{m.group(1)}" loading="lazy">', text)
-    text = re.sub(r"\[([^\]]+)\]\(\s*([^)\s]+)\s*\)", r'<a href="\2">\1</a>', text)
+    text = re.sub(r"!\[([^\]]*)\]\(\s*(?:&lt;)?([^)\s]+?)(?:&gt;)?\s*\)", _img, text)
+    text = re.sub(r"\[([^\]]+)\]\(\s*([^)\s]+)\s*\)", _link, text)
     text = re.sub(r"\*\*(.+?)\*\*|__(.+?)__", lambda m: f"<strong>{m.group(1) or m.group(2)}</strong>", text)
     text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])|(?<![\w_])_(?!\s)(.+?)(?<!\s)_(?![\w_])",
                   lambda m: f"<em>{m.group(1) or m.group(2)}</em>", text)
@@ -237,7 +257,7 @@ def newest_post(root):
     return slug, (t.group(1) if t else slug)
 
 
-def build_post(root, title, author, body_md, image_src, date=None):
+def build_post(root, title, author, body_md, image_src, date=None, hero_alt="", allow_local=False):
     title, author = " ".join(title.split()), " ".join(author.split())
     if not title:
         raise PostError("The post needs a title.")
@@ -256,7 +276,7 @@ def build_post(root, title, author, body_md, image_src, date=None):
     template = read(os.path.join(root, "blog", prev_slug + ".html"))
 
     # photos
-    hero_data = load_bytes(image_src)
+    hero_data = load_bytes(image_src, allow_local)
     hero = open_image(hero_data, image_src)
     n = 1 + max([int(m.group(1)) for f in os.listdir(os.path.join(root, "assets", "blog"))
                  if (m := re.fullmatch(r"post(\d+)\.jpg", f))] or [-1])
@@ -266,13 +286,16 @@ def build_post(root, title, author, body_md, image_src, date=None):
     save_jpeg(hero, os.path.join(root, "assets", "og", f"blog-{slug}.jpg"), fit=(1200, 630))
 
     # photos inside the text
-    for k, (whole, src, alt) in enumerate(find_images(body_md), start=1):
-        name = f"{slug}-{k}.jpg"
-        save_jpeg(open_image(load_bytes(src), src), os.path.join(posts_dir, name))
+    saved = {}
+    for whole, src, alt in find_images(body_md):
+        if src not in saved:  # the same photo twice in one post is saved once
+            saved[src] = f"{slug}-{len(saved) + 1}.jpg"
+            save_jpeg(open_image(load_bytes(src, allow_local), src), os.path.join(posts_dir, saved[src]))
+        name = saved[src]
         md_img = f"![{good_alt(alt, 'A photo from this post')}](../assets/blog/posts/{name})"
         body_md = body_md.replace(whole, md_img, 1)
 
-    hero_alt = good_alt(hero_alt_of(image_src), f"Photo for “{title}”")
+    hero_alt = good_alt(hero_alt, f"Photo for “{title}”")
     summary = summary_of(body_md)
     body_html = to_html(body_md)
 
@@ -325,25 +348,34 @@ def build_post(root, title, author, body_md, image_src, date=None):
     return slug
 
 
-def hero_alt_of(image_src):
-    return getattr(hero_alt_of, "alt", "")
-
-
 # ---------- reading the issue form ----------
 
 def parse_issue(text):
-    parts = re.split(r"^### +(.+?)\s*$", text.replace("\r\n", "\n"), flags=re.M)
-    fields = {parts[i].strip().lower(): parts[i + 1].strip() for i in range(1, len(parts) - 1, 2)}
-    fields = {k: ("" if v == "_No response_" else v) for k, v in fields.items()}
-    for need, name in [("post title", "Post title"), ("author", "Author"), ("post", "Post"), ("post image", "Post image")]:
-        if not fields.get(need):
-            raise PostError(f"The **{name}** box is empty.")
-    imgs = find_images(fields["post image"])
-    src = imgs[0][1] if imgs else (re.search(r"https?://\S+", fields["post image"]) or [None])[0]
+    """The four boxes of the issue form. Only the form's own headings split it, so `###` inside the post is fine."""
+    text = text.replace("\r\n", "\n")
+    labels = ["Post title", "Author", "Post", "Post image"]
+    marks, pos = [], 0
+    for label in labels:
+        pat = re.compile(rf"^### +{re.escape(label)}[ \t]*$", re.M)
+        found = list(pat.finditer(text, pos))
+        if label == "Post image" and found:
+            found = found[-1:]  # the last one, so a "### Post image" line inside the post can't cut it short
+        if not found:
+            raise PostError(f"I couldn't find the **{label}** box in the issue.")
+        marks.append(found[0])
+        pos = found[0].end()
+    fields = {}
+    for k, label in enumerate(labels):
+        end = marks[k + 1].start() if k + 1 < len(marks) else len(text)
+        v = text[marks[k].end():end].strip()
+        fields[label] = "" if v == "_No response_" else v
+        if not fields[label]:
+            raise PostError(f"The **{label}** box is empty.")
+    imgs = find_images(fields["Post image"])
+    src = imgs[0][1] if imgs else (re.search(r"https?://\S+", fields["Post image"]) or [None])[0]
     if not src:
         raise PostError("I couldn't find a picture in the **Post image** box. Drag one photo into it.")
-    hero_alt_of.alt = imgs[0][2] if imgs else ""
-    return fields["post title"], fields["author"], fields["post"], src
+    return fields["Post title"], fields["Author"], fields["Post"], src, (imgs[0][2] if imgs else "")
 
 
 def main(argv=None):
@@ -359,16 +391,19 @@ def main(argv=None):
     a = ap.parse_args(argv)
     try:
         if a.issue_body:
-            title, author, body, image = parse_issue(read(a.issue_body))
+            title, author, body, image, alt = parse_issue(read(a.issue_body))
+            local = False
         elif a.title and a.author and a.body and a.image:
-            title, author, body, image = a.title, a.author, read(a.body), a.image
-            hero_alt_of.alt = a.alt
+            title, author, body, image, alt, local = a.title, a.author, read(a.body), a.image, a.alt, True
         else:
             ap.error("give --issue-body, or all of --title --author --body --image")
         date = datetime.date.fromisoformat(a.date) if a.date else None
-        slug = build_post(a.root, title, author, body, image, date)
+        slug = build_post(a.root, title, author, body, image, date, alt, local)
     except PostError as e:
         print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:  # anything unexpected: still one readable line for the issue comment
+        print(f"ERROR: something unexpected went wrong ({type(e).__name__}: {e}). Ask a developer to look at the workflow run.", file=sys.stderr)
         return 1
     print(f"slug={slug}")
     print(f"title={' '.join(title.split())}")

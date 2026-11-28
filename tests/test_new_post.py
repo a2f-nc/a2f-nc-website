@@ -9,32 +9,26 @@ spec = importlib.util.spec_from_file_location("new_post", os.path.join(ROOT, "to
 new_post = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(new_post)
 
-ISSUE = """### Post title
-
-Why I Love Chapel Hill's Sundays
-
-### Author
-
-Jane Doe
-
-### Post
-
-Hello **world**, this is a *test* with a [link](https://example.com).
+BODY = """Hello **world**, this is a *test* with a [link](https://example.com).
 Second line.
 
 ## A heading
+
+### A smaller heading
 
 - one
 - two
 
 ![Image]({inline})
 
+![Image]({inline})
+
 Last paragraph.
-
-### Post image
-
-![Sunday lunch with friends]({hero})
 """
+
+
+def issue(title="Why I Love Chapel Hill's Sundays", author="Jane Doe", body="Hi there.", image="![Sunday lunch](https://github.com/user-attachments/assets/abc)"):
+    return f"### Post title\n\n{title}\n\n### Author\n\n{author}\n\n### Post\n\n{body}\n\n### Post image\n\n{image}\n"
 
 
 def run(site, *args):
@@ -48,11 +42,12 @@ def built(tmp_path_factory):
     pics = tmp_path_factory.mktemp("pics")
     Image.new("RGB", (2000, 1500), (200, 120, 60)).save(pics / "hero.jpg")
     Image.new("RGB", (800, 600), (60, 120, 200)).save(pics / "inline.png")
-    (pics / "issue.txt").write_text(ISSUE.format(hero=pics / "hero.jpg", inline=pics / "inline.png"))
+    (pics / "post.md").write_text(BODY.format(inline=pics / "inline.png"))
     before = (site / "blog.html").read_text()
     first = [l for l in before.splitlines() if 'class="post feature rv"' in l][0]
     old_slug = first.split('href="blog/')[1].split(".html")[0]
-    r = run(site, "--issue-body", str(pics / "issue.txt"), "--date", "2026-11-30")
+    r = run(site, "--title", "Why I Love Chapel Hill's Sundays", "--author", "Jane Doe", "--body", str(pics / "post.md"),
+            "--image", str(pics / "hero.jpg"), "--alt", "Sunday lunch with friends", "--date", "2026-11-30")
     return site, r, old_slug, pics
 
 
@@ -73,6 +68,8 @@ def test_page_has_title_byline_text_and_photos(built):
     assert "<h2>A heading</h2>" in page and "<ul><li>one</li><li>two</li></ul>" in page
     assert 'alt="Sunday lunch with friends"' in page
     assert '<img src="../assets/blog/posts/why-i-love-chapel-hills-sundays-1.jpg"' in page
+    assert page.count("why-i-love-chapel-hills-sundays-1.jpg") == 2 and "sundays-2.jpg" not in page  # same photo twice, saved once
+    assert "<h3>A smaller heading</h3>" in page
     assert '<link rel="canonical" href="https://nc.acts2fellowship.org/blog/why-i-love-chapel-hills-sundays">' in page
     for f in ["assets/blog/posts/why-i-love-chapel-hills-sundays.jpg", "assets/blog/posts/why-i-love-chapel-hills-sundays-1.jpg",
               "assets/blog/post9.jpg", "assets/og/blog-why-i-love-chapel-hills-sundays.jpg"]:
@@ -101,13 +98,13 @@ def test_blog_list_and_sitemap(built):
 
 def test_same_title_again_is_refused(built):
     site, _, _, pics = built
-    r = run(site, "--issue-body", str(pics / "issue.txt"))
+    r = run(site, "--title", "Why I Love Chapel Hill's Sundays", "--author", "A", "--body", str(pics / "post.md"), "--image", str(pics / "hero.jpg"))
     assert r.returncode == 1 and "already a post" in r.stderr
 
 
 def test_empty_boxes_are_explained(tmp_path):
     f = tmp_path / "i.txt"
-    f.write_text("### Post title\n\nHi\n\n### Author\n\n_No response_\n\n### Post\n\nText\n\n### Post image\n\nx")
+    f.write_text(issue(author="_No response_"))
     r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "new_post.py"), "--issue-body", str(f)], capture_output=True, text=True)
     assert r.returncode == 1 and "**Author** box is empty" in r.stderr
 
@@ -120,3 +117,36 @@ def test_markdown_and_summary():
     long = new_post.summary_of("word " * 80)
     assert long.endswith("…") and len(long) <= 162
     assert new_post.make_slug("How Tacos Changed My College Life!") == "how-tacos-changed-my-college-life"
+
+
+def test_headings_inside_the_post_do_not_cut_it_off():
+    t, a, body, img, alt = new_post.parse_issue(issue(body="Intro\n\n### Tips\n\nMore text\n\n### Author\n\nsneaky"))
+    assert a == "Jane Doe" and "More text" in body and body.endswith("sneaky") and alt == "Sunday lunch"
+    assert img == "https://github.com/user-attachments/assets/abc"
+
+
+def test_quotes_and_bad_links_cannot_inject_html():
+    h = new_post.to_html('[a](https://e.com/"onmouseover="x) [b](javascript:alert`1`) ![z" onerror="y](https://e.com/p.png) ![ok](../assets/blog/posts/a.jpg)')
+    assert '"onmouseover' not in h and 'onerror="' not in h and "javascript:" not in h.replace("javascript:alert", "")
+    assert 'href="javascript' not in h and "<img src=\"https://" not in h
+    assert '<img src="../assets/blog/posts/a.jpg" alt="ok"' in h
+    assert new_post.to_html("`x \x00 y`").count("\x00") == 0
+
+
+def test_only_github_hosts_get_the_token_or_are_fetched():
+    ok = new_post.is_github_host
+    assert ok("https://github.com/user-attachments/assets/1") and ok("https://private-user-images.githubusercontent.com/1.png")
+    for bad in ["https://github.com.evil.io/x", "https://evil-github.com/x", "http://github.com/x", "https://evilgithubusercontent.com/x", "https://example.com/p.png"]:
+        assert not ok(bad), bad
+    with pytest.raises(new_post.PostError):
+        new_post.load_bytes("https://example.com/p.png")
+    with pytest.raises(new_post.PostError):
+        new_post.load_bytes("/etc/passwd")  # local files only when run by hand
+
+
+def test_issue_with_a_photo_link_to_another_site_is_refused(built):
+    site, _, _, pics = built
+    f = pics / "bad.txt"
+    f.write_text(issue(title="Another post", image="https://example.com/p.png"))
+    r = run(site, "--issue-body", str(f))
+    assert r.returncode == 1 and "attached to the issue" in r.stderr

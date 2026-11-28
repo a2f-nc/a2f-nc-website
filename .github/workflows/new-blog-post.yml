@@ -42,7 +42,7 @@ jobs:
         run: |
           printf '%s' "$ISSUE_BODY" > "$RUNNER_TEMP/issue.txt"
           fail() {
-            printf 'I could not turn this into a blog post:\n\n> %s\n\nTo try again, open a new "New blog post" issue. Or comment `@claude` here and say what to fix, and Claude will take it from here.\n' "$1" > "$RUNNER_TEMP/fail.txt"
+            printf 'I could not turn this into a blog post:\n\n```\n%s\n```\n\nFix that and open a new "New blog post" issue.\n' "$1" > "$RUNNER_TEMP/fail.txt"
             gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/fail.txt"
             exit 1
           }
@@ -50,7 +50,7 @@ jobs:
             > "$RUNNER_TEMP/out.txt" 2> "$RUNNER_TEMP/err.txt" || fail "$(sed 's/^ERROR: //' "$RUNNER_TEMP/err.txt" | head -c 1500)"
           python3 tools/check.py > "$RUNNER_TEMP/check.txt" 2>&1 || fail "The site check found a problem: $(head -c 1500 "$RUNNER_TEMP/check.txt")"
           echo "slug=$(sed -n 's/^slug=//p' "$RUNNER_TEMP/out.txt")" >> "$GITHUB_OUTPUT"
-          { echo "title<<EOF_TITLE"; sed -n 's/^title=//p' "$RUNNER_TEMP/out.txt"; echo "EOF_TITLE"; } >> "$GITHUB_OUTPUT"
+          grep -m1 '^title=' "$RUNNER_TEMP/out.txt" >> "$GITHUB_OUTPUT"
       - name: Open the pull request
         env:
           SLUG: ${{ steps.build.outputs.slug }}
@@ -78,3 +78,8 @@ jobs:
           url=$(gh pr create -R "$REPO" --base main --head "$branch" --title "Blog post: $TITLE" --body-file "$RUNNER_TEMP/pr.md")
           printf 'I built your post and opened %s.\n\nA preview link will appear here in a minute or two. Reply on this issue if you want anything changed; when it looks right, approve and merge the pull request to publish it.\n' "$url" > "$RUNNER_TEMP/done.txt"
           gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/done.txt"
+      - name: Tell the issue if opening the pull request failed
+        if: failure() && steps.build.outcome == 'success'
+        run: |
+          printf 'I built the post but could not open the pull request. Ask a developer to look at the workflow run: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$REPO" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/fail2.txt"
+          gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/fail2.txt"
