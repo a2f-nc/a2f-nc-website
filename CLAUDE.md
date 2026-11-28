@@ -7,7 +7,7 @@ Contributors are church volunteers, often non-developers, so explain changes in 
 - Plain static HTML in the repo root: `index.html`, `unc.html`, `nc-state.html`, `our-story.html`, `leadership.html`,
   `statement-of-faith.html`, `get-connected.html`, `other-ministries.html`, `blog.html`, `404.html`.
   Blog posts are pages in `blog/` (one folder down, so their links start with `../`), named after their old Squarespace slugs.
-  No build step, no dependencies, no npm. Edit the pages directly.
+  No build step, no dependencies, no npm. Edit the pages directly. (The one script, `tools/new_post.py`, only writes new blog posts; see below.)
 - All styles are in `assets/c2.css`; all behavior (story player, reels, swipe deck, Pull up sheet,
   tabs, lightbox, .ics download) is in `assets/c2.js`. Story slides are data in `window.STORIES` at the bottom of each page.
 - The header, footer, mobile tab bar and Pull up sheet are repeated in every page. If you change one, change it in all pages.
@@ -44,10 +44,13 @@ Contributors are church volunteers, often non-developers, so explain changes in 
 3. Say in the PR which pages to check on the Vercel preview.
 
 ## Blog posts from issues
-The "New blog post" issue form (`.github/ISSUE_TEMPLATE/blog-post.yml`) gives you: the issue title (the post title), Author, Post (Markdown, may include dragged-in photos) and Post image.
-Follow README "To add a blog post", and also:
-- The Post image is both the card thumbnail (`assets/blog/postN.jpg`) and the top photo (`assets/blog/posts/<slug>.jpg`); make the 1200x630 `assets/og/blog-<slug>.jpg` too. Write a real `alt`.
-- The date is today's date. Write the summary line for the card and meta description yourself from the post text; don't invent facts or quotes.
-- Put the new post's card first on `blog.html`, add it to `sitemap.xml`, and give it an "Older post" link to the previously newest post.
-  Add a "Newer post" link to that previous newest post's `post-nav`. Look at an existing post's `post-nav` for the markup.
-- Photos pasted in the Post body must be saved into `assets/blog/posts/` and used once; don't leave links to `github.com/user-attachments` URLs.
+New posts are built by a script, not by Claude. Someone opens the "New blog post" issue form
+(`.github/ISSUE_TEMPLATE/blog-post.yml`: Post title, Author, Post as Markdown, Post image), and `.github/workflows/new-blog-post.yml`
+runs `python3 tools/new_post.py --issue-body ...`, which writes `blog/<slug>.html` (copied from the newest post), the three photo sizes,
+the first card on `blog.html`, the `sitemap.xml` entry, and the Older/Newer post links on the new post and the previous newest one.
+The workflow then opens a pull request on branch `claude/issue-<N>-blog-<slug>`. `claude.yml` leaves these issues alone when they are opened.
+- When someone replies on the issue, you update that same pull request. Edit the post's HTML directly (text, photo alt text, summary, title).
+  If you change a title or slug, also update `blog.html`, `sitemap.xml`, the `post-nav` links on the neighbor posts and the `assets/og/blog-<slug>.jpg` name.
+- Check the photo `alt` text the script chose (it falls back to "Photo for “<title>”") and improve it if you can see what the photo shows.
+- Don't hand-build new posts. If the script can't do something, fix `tools/new_post.py` and add a test to `tests/test_new_post.py`.
+- Photos dragged into the post text are saved to `assets/blog/posts/`; never leave links to `github.com/user-attachments`.

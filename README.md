@@ -35,8 +35,10 @@ It's a plain static site (HTML, CSS and a little JavaScript, no framework and no
 | `blog/*.html` | One page per blog post. The file name matches the post's old Squarespace address |
 | `404.html` | Shown for any page that doesn't exist |
 
-To add a blog post: copy one of the files in `blog/`, rename it, and change the title, description, byline, photo and text.
-Then add a card for it at the top of `blog.html` and update the "Older post / Newer post" links on its neighbors.
+To add a blog post: open a new issue on GitHub and pick **New blog post**. Fill in the title, author, the post (you can format it and
+drag photos in) and one photo. A workflow builds the page, the blog list card, the sitemap entry and the older/newer links
+with `tools/new_post.py` and opens a pull request with a preview. Reply on the issue to ask for changes, then merge the pull request.
+By hand, the same thing is `python3 tools/new_post.py --title "..." --author "..." --body post.md --image photo.jpg` (needs `pip install -r requirements-dev.txt`).
 Pages in `blog/` are one folder down, so their links start with `../` (for example `../assets/c2.css`).
 
 Some page text lives in a `<script>` block near the bottom of each page (`window.STORIES = {...}`).

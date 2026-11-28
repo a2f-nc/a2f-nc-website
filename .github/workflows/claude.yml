@@ -1,5 +1,7 @@
 name: Claude
 # Lets the team ask Claude for website changes, with the whole conversation in the issue:
+#  - "New blog post" issues are NOT started by Claude: new-blog-post.yml builds the page with tools/new_post.py
+#    and opens the pull request; replies on that issue then come to Claude as usual (issue-feedback below)
 #  - open an issue: Claude starts on it automatically if the author has write access to the repo
 #    (issues from anyone else wait until someone with write access adds the "claude" label)
 #  - comment on that issue with feedback (no @claude needed): Claude updates the same pull request and replies there
@@ -35,8 +37,8 @@ jobs:
       id-token: write
       actions: read
     if: |
-      (github.event_name == 'issues' && github.event.action == 'opened' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.issue.author_association)) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude') || github.event.label.name == 'claude')) ||
+      (github.event_name == 'issues' && github.event.action == 'opened' && !contains(github.event.issue.body, '### Post image') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.issue.author_association)) ||
+      (github.event_name == 'issues' && ((contains(github.event.issue.body, '@claude') && !contains(github.event.issue.body, '### Post image')) || contains(github.event.issue.title, '@claude') || github.event.label.name == 'claude')) ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))

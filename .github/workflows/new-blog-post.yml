@@ -1,0 +1,85 @@
+name: New blog post
+# When someone with write access opens a "New blog post" issue (the issue form in .github/ISSUE_TEMPLATE/blog-post.yml),
+# tools/new_post.py builds the page from the issue and this workflow opens the pull request. No AI is involved.
+# The branch is named claude/issue-<N>-blog-<slug>, so a reply on the issue brings Claude in to change that same
+# pull request (claude.yml "issue-feedback") and the preview link gets posted on the issue (issue-preview-link.yml).
+# Optional: a BLOG_BOT_TOKEN repo secret (a fine-grained token with Contents and Pull requests write) makes GitHub
+# start the "Check site" tests on this pull request. Without it the pull request still opens, but GitHub does not
+# start other workflows for pull requests created with the built-in token (see SETUP.md).
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: |
+      contains(github.event.issue.body, '### Post title') && contains(github.event.issue.body, '### Post image') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.BLOG_BOT_TOKEN || github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      ISSUE: ${{ github.event.issue.number }}
+      REPO: ${{ github.repository }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.BLOG_BOT_TOKEN || github.token }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install "pillow==13.*"
+      - name: Build the post
+        id: build
+        run: |
+          printf '%s' "$ISSUE_BODY" > "$RUNNER_TEMP/issue.txt"
+          fail() {
+            printf 'I could not turn this into a blog post:\n\n```\n%s\n```\n\nFix that and open a new "New blog post" issue.\n' "$1" > "$RUNNER_TEMP/fail.txt"
+            gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/fail.txt"
+            exit 1
+          }
+          python3 tools/new_post.py --issue-body "$RUNNER_TEMP/issue.txt" --date "$(TZ=America/New_York date +%F)" \
+            > "$RUNNER_TEMP/out.txt" 2> "$RUNNER_TEMP/err.txt" || fail "$(sed 's/^ERROR: //' "$RUNNER_TEMP/err.txt" | head -c 1500)"
+          python3 tools/check.py > "$RUNNER_TEMP/check.txt" 2>&1 || fail "The site check found a problem: $(head -c 1500 "$RUNNER_TEMP/check.txt")"
+          echo "slug=$(sed -n 's/^slug=//p' "$RUNNER_TEMP/out.txt")" >> "$GITHUB_OUTPUT"
+          grep -m1 '^title=' "$RUNNER_TEMP/out.txt" >> "$GITHUB_OUTPUT"
+      - name: Open the pull request
+        env:
+          SLUG: ${{ steps.build.outputs.slug }}
+          TITLE: ${{ steps.build.outputs.title }}
+        run: |
+          branch="claude/issue-$ISSUE-blog-$SLUG"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "Add blog post: $SLUG" -m "Built from issue #$ISSUE by tools/new_post.py."
+          git push origin "$branch"
+          cat > "$RUNNER_TEMP/pr.md" <<BODY
+          Closes #$ISSUE
+
+          Adds the blog post from issue #$ISSUE. It was built by \`tools/new_post.py\`, so the page, the card on the blog list, the sitemap and the older/newer links are all done the same way as every other post.
+
+          **Check on the Vercel preview:**
+          - \`/blog\`: the new post is the first card
+          - \`/blog/$SLUG\`: the title, photo and text, and the "Older post" link at the bottom
+          - the previous newest post now has a "Newer post" link back to this one
+
+          To change anything, reply on issue #$ISSUE and Claude will update this pull request.
+          BODY
+          url=$(gh pr create -R "$REPO" --base main --head "$branch" --title "Blog post: $TITLE" --body-file "$RUNNER_TEMP/pr.md")
+          printf 'I built your post and opened %s.\n\nA preview link will appear here in a minute or two. Reply on this issue if you want anything changed; when it looks right, approve and merge the pull request to publish it.\n' "$url" > "$RUNNER_TEMP/done.txt"
+          gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/done.txt"
+      - name: Tell the issue if opening the pull request failed
+        if: failure() && steps.build.outcome == 'success'
+        run: |
+          printf 'I built the post but could not open the pull request. Ask a developer to look at the workflow run: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$REPO" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/fail2.txt"
+          gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/fail2.txt"
