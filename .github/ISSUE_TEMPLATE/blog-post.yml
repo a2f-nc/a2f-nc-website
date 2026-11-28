@@ -1,0 +1,29 @@
+name: New blog post
+description: Ask Claude to write and add a blog post to the site
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **The issue title above is the post's title.** Fill in the rest and submit. Claude adds the post and opens a pull request,
+        and a preview link shows up on this issue a few minutes later. Reply on the issue to ask for changes.
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      description: Name as it should appear in the byline.
+    validations:
+      required: true
+  - type: textarea
+    id: post
+    attributes:
+      label: Post
+      description: Write or paste the post here. You can format it (headings, bold, links, lists) and use the Preview tab to check it. Drag photos in to place them where you want.
+    validations:
+      required: true
+  - type: textarea
+    id: post-image
+    attributes:
+      label: Post image
+      description: Drag in one photo. It is the thumbnail on the blog page and the photo at the top of the post. Add a short line describing what it shows.
+    validations:
+      required: true
