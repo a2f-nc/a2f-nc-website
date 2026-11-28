@@ -1,13 +1,7 @@
 name: New blog post
 description: Add a blog post to the site
-title: "New blog post"
+title: "Post title"
 body:
-  - type: input
-    id: post-title
-    attributes:
-      label: Post title
-    validations:
-      required: true
   - type: input
     id: author
     attributes:

@@ -350,10 +350,14 @@ def build_post(root, title, author, body_md, image_src, date=None, hero_alt="", 
 
 # ---------- reading the issue form ----------
 
-def parse_issue(text):
-    """The four boxes of the issue form. Only the form's own headings split it, so `###` inside the post is fine."""
+def parse_issue(text, issue_title):
+    """The issue's title is the post title; the form's three boxes are Author, Post and Post image.
+    Only the form's own headings split the text, so `###` inside the post is fine."""
     text = text.replace("\r\n", "\n")
-    labels = ["Post title", "Author", "Post", "Post image"]
+    issue_title = " ".join(issue_title.split())
+    if not issue_title or issue_title.lower() == "post title":
+        raise PostError("The issue title is the post's title. Replace \"Post title\" with the real title.")
+    labels = ["Author", "Post", "Post image"]
     marks, pos = [], 0
     for label in labels:
         pat = re.compile(rf"^### +{re.escape(label)}[ \t]*$", re.M)
@@ -375,12 +379,13 @@ def parse_issue(text):
     src = imgs[0][1] if imgs else (re.search(r"https?://\S+", fields["Post image"]) or [None])[0]
     if not src:
         raise PostError("I couldn't find a picture in the **Post image** box. Drag one photo into it.")
-    return fields["Post title"], fields["Author"], fields["Post"], src, (imgs[0][2] if imgs else "")
+    return issue_title, fields["Author"], fields["Post"], src, (imgs[0][2] if imgs else "")
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--issue-body", help="a file holding the text of a 'New blog post' issue")
+    ap.add_argument("--issue-title", help="that issue's title, which becomes the post title")
     ap.add_argument("--title")
     ap.add_argument("--author")
     ap.add_argument("--body", help="a file holding the post text (Markdown)")
@@ -391,7 +396,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     try:
         if a.issue_body:
-            title, author, body, image, alt = parse_issue(read(a.issue_body))
+            title, author, body, image, alt = parse_issue(read(a.issue_body), a.issue_title or "")
             local = False
         elif a.title and a.author and a.body and a.image:
             title, author, body, image, alt, local = a.title, a.author, read(a.body), a.image, a.alt, True

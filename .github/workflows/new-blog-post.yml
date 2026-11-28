@@ -16,7 +16,7 @@ permissions:
 jobs:
   build:
     if: |
-      contains(github.event.issue.body, '### Post title') && contains(github.event.issue.body, '### Post image') &&
+      contains(github.event.issue.body, '### Author') && contains(github.event.issue.body, '### Post image') &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.issue.author_association)
     permissions:
       contents: write
@@ -29,6 +29,7 @@ jobs:
       ISSUE: ${{ github.event.issue.number }}
       REPO: ${{ github.repository }}
       ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE_TITLE: ${{ github.event.issue.title }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -46,7 +47,7 @@ jobs:
             gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/fail.txt"
             exit 1
           }
-          python3 tools/new_post.py --issue-body "$RUNNER_TEMP/issue.txt" --date "$(TZ=America/New_York date +%F)" \
+          python3 tools/new_post.py --issue-body "$RUNNER_TEMP/issue.txt" --issue-title "$ISSUE_TITLE" --date "$(TZ=America/New_York date +%F)" \
             > "$RUNNER_TEMP/out.txt" 2> "$RUNNER_TEMP/err.txt" || fail "$(sed 's/^ERROR: //' "$RUNNER_TEMP/err.txt" | head -c 1500)"
           python3 tools/check.py > "$RUNNER_TEMP/check.txt" 2>&1 || fail "The site check found a problem: $(head -c 1500 "$RUNNER_TEMP/check.txt")"
           echo "slug=$(sed -n 's/^slug=//p' "$RUNNER_TEMP/out.txt")" >> "$GITHUB_OUTPUT"
