@@ -1,5 +1,5 @@
 name: New blog post
-# When someone with write access opens a "New blog post" issue (the issue form in .github/ISSUE_TEMPLATE/blog-post.yml),
+# When a team member (same author_association list as claude.yml; GitHub reports private org members as CONTRIBUTOR) opens a "New blog post" issue (the issue form in .github/ISSUE_TEMPLATE/blog-post.yml),
 # tools/new_post.py builds the page from the issue and this workflow opens the pull request. No AI is involved.
 # The branch is named claude/issue-<N>-blog-<slug>, so a reply on the issue brings Claude in to change that same
 # pull request (claude.yml "issue-feedback") and the preview link gets posted on the issue (issue-preview-link.yml).
@@ -17,7 +17,7 @@ jobs:
   build:
     if: |
       contains(github.event.issue.body, '### Post title') && contains(github.event.issue.body, '### Post image') &&
-      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.issue.author_association)
     permissions:
       contents: write
       pull-requests: write
