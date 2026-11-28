@@ -502,6 +502,7 @@ body.unc .wrap, body.ncsu .wrap{width:min(960px, 100% - 32px)}
 .post-body p{max-width:none}
 .post-body ul{margin:0 0 18px; padding-left:22px}
 .post-body li{margin:0 0 6px}
+.post-body img{width:100%; height:auto; border-radius:var(--r)}
 .post-body strong{font-weight:700}
 .post-body a{color:var(--green-d)}
 .post-body blockquote{margin:0 0 22px; padding:4px 0 4px 18px; border-left:4px solid var(--yellow)}
