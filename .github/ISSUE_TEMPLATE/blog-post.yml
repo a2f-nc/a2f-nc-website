@@ -1,56 +1,29 @@
 name: New blog post
 description: Ask Claude to write and add a blog post to the site
-title: "Blog post: "
 body:
   - type: markdown
     attributes:
       value: |
-        Fill this in and submit. Claude starts on it automatically and opens a pull request with the new post.
-        A preview link shows up on this issue a few minutes later. Reply on the issue to ask for changes.
-  - type: input
-    id: post-title
-    attributes:
-      label: Working title
-      description: Claude can suggest a better one if you leave this rough.
-    validations:
-      required: true
+        **The issue title above is the post's title.** Fill in the rest and submit. Claude adds the post and opens a pull request,
+        and a preview link shows up on this issue a few minutes later. Reply on the issue to ask for changes.
   - type: input
     id: author
     attributes:
       label: Author
-      description: Name as it should appear in the byline. Add a line like "(Purdue c/o 2023)" if you want one.
+      description: Name as it should appear in the byline.
     validations:
       required: true
   - type: textarea
-    id: key-points
+    id: post
     attributes:
-      label: What should the post say?
-      description: Key points, a story, Scripture, quotes, or paste a draft. Only real facts, names and quotes will be used, so include anything Claude shouldn't have to guess.
+      label: Post
+      description: Write or paste the post here. You can format it (headings, bold, links, lists) and use the Preview tab to check it. Drag photos in to place them where you want.
     validations:
       required: true
   - type: textarea
-    id: photos
+    id: post-image
     attributes:
-      label: Photos
-      description: Drag photos in here. Real community photos work best, bright and sharp with faces visible. Say what each one shows and which should be the top photo. Each photo can only be used once on the site.
-  - type: dropdown
-    id: tone
-    attributes:
-      label: Tone
-      multiple: true
-      options:
-        - Personal story
-        - Encouraging
-        - Practical tips
-        - Thoughtful and teaching
-        - Light and fun
-  - type: input
-    id: publish-date
-    attributes:
-      label: Publish date
-      description: The date shown on the post, like Dec 5, 2026. Leave blank to use today.
-  - type: textarea
-    id: notes
-    attributes:
-      label: Anything else?
-      description: Links to include, a campus focus (UNC or NC State), or things to avoid.
+      label: Post image
+      description: Drag in one photo. It is the thumbnail on the blog page and the photo at the top of the post. Add a short line describing what it shows.
+    validations:
+      required: true

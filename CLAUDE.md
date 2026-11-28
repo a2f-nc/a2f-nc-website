@@ -42,3 +42,12 @@ Contributors are church volunteers, often non-developers, so explain changes in 
 1. `python3 tools/check.py` says "All good" and `python3 -m pytest` passes.
 2. Check the changed pages at desktop and phone width, and open a story, a reel and the Pull up sheet.
 3. Say in the PR which pages to check on the Vercel preview.
+
+## Blog posts from issues
+The "New blog post" issue form (`.github/ISSUE_TEMPLATE/blog-post.yml`) gives you: the issue title (the post title), Author, Post (Markdown, may include dragged-in photos) and Post image.
+Follow README "To add a blog post", and also:
+- The Post image is both the card thumbnail (`assets/blog/postN.jpg`) and the top photo (`assets/blog/posts/<slug>.jpg`); make the 1200x630 `assets/og/blog-<slug>.jpg` too. Write a real `alt`.
+- The date is today's date. Write the summary line for the card and meta description yourself from the post text; don't invent facts or quotes.
+- Put the new post's card first on `blog.html`, add it to `sitemap.xml`, and give it an "Older post" link to the previously newest post.
+  Add a "Newer post" link to that previous newest post's `post-nav`. Look at an existing post's `post-nav` for the markup.
+- Photos pasted in the Post body must be saved into `assets/blog/posts/` and used once; don't leave links to `github.com/user-attachments` URLs.
