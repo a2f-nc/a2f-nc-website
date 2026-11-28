@@ -1,5 +1,5 @@
 name: New blog post
-# When someone with write access opens a "New blog post" issue (the issue form in .github/ISSUE_TEMPLATE/blog-post.yml),
+# When a team member (same author_association list as claude.yml; GitHub reports private org members as CONTRIBUTOR) opens a "New blog post" issue (the issue form in .github/ISSUE_TEMPLATE/blog-post.yml),
 # tools/new_post.py builds the page from the issue and this workflow opens the pull request. No AI is involved.
 # The branch is named claude/issue-<N>-blog-<slug>, so a reply on the issue brings Claude in to change that same
 # pull request (claude.yml "issue-feedback") and the preview link gets posted on the issue (issue-preview-link.yml).
@@ -16,8 +16,8 @@ permissions:
 jobs:
   build:
     if: |
-      contains(github.event.issue.body, '### Post title') && contains(github.event.issue.body, '### Post image') &&
-      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
+      contains(github.event.issue.body, '### Author') && contains(github.event.issue.body, '### Post image') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.issue.author_association)
     permissions:
       contents: write
       pull-requests: write
@@ -29,6 +29,7 @@ jobs:
       ISSUE: ${{ github.event.issue.number }}
       REPO: ${{ github.repository }}
       ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE_TITLE: ${{ github.event.issue.title }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -46,7 +47,7 @@ jobs:
             gh issue comment "$ISSUE" -R "$REPO" --body-file "$RUNNER_TEMP/fail.txt"
             exit 1
           }
-          python3 tools/new_post.py --issue-body "$RUNNER_TEMP/issue.txt" --date "$(TZ=America/New_York date +%F)" \
+          python3 tools/new_post.py --issue-body "$RUNNER_TEMP/issue.txt" --issue-title "$ISSUE_TITLE" --date "$(TZ=America/New_York date +%F)" \
             > "$RUNNER_TEMP/out.txt" 2> "$RUNNER_TEMP/err.txt" || fail "$(sed 's/^ERROR: //' "$RUNNER_TEMP/err.txt" | head -c 1500)"
           python3 tools/check.py > "$RUNNER_TEMP/check.txt" 2>&1 || fail "The site check found a problem: $(head -c 1500 "$RUNNER_TEMP/check.txt")"
           echo "slug=$(sed -n 's/^slug=//p' "$RUNNER_TEMP/out.txt")" >> "$GITHUB_OUTPUT"

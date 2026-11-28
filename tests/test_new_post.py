@@ -27,8 +27,8 @@ Last paragraph.
 """
 
 
-def issue(title="Why I Love Chapel Hill's Sundays", author="Jane Doe", body="Hi there.", image="![Sunday lunch](https://github.com/user-attachments/assets/abc)"):
-    return f"### Post title\n\n{title}\n\n### Author\n\n{author}\n\n### Post\n\n{body}\n\n### Post image\n\n{image}\n"
+def issue(author="Jane Doe", body="Hi there.", image="![Sunday lunch](https://github.com/user-attachments/assets/abc)"):
+    return f"### Author\n\n{author}\n\n### Post\n\n{body}\n\n### Post image\n\n{image}\n"
 
 
 def run(site, *args):
@@ -105,7 +105,7 @@ def test_same_title_again_is_refused(built):
 def test_empty_boxes_are_explained(tmp_path):
     f = tmp_path / "i.txt"
     f.write_text(issue(author="_No response_"))
-    r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "new_post.py"), "--issue-body", str(f)], capture_output=True, text=True)
+    r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "new_post.py"), "--issue-body", str(f), "--issue-title", "Hi"], capture_output=True, text=True)
     assert r.returncode == 1 and "**Author** box is empty" in r.stderr
 
 
@@ -120,8 +120,8 @@ def test_markdown_and_summary():
 
 
 def test_headings_inside_the_post_do_not_cut_it_off():
-    t, a, body, img, alt = new_post.parse_issue(issue(body="Intro\n\n### Tips\n\nMore text\n\n### Author\n\nsneaky"))
-    assert a == "Jane Doe" and "More text" in body and body.endswith("sneaky") and alt == "Sunday lunch"
+    t, a, body, img, alt = new_post.parse_issue(issue(body="Intro\n\n### Tips\n\nMore text\n\n### Author\n\nsneaky"), "A title")
+    assert t == "A title" and a == "Jane Doe" and "More text" in body and body.endswith("sneaky") and alt == "Sunday lunch"
     assert img == "https://github.com/user-attachments/assets/abc"
 
 
@@ -147,6 +147,13 @@ def test_only_github_hosts_get_the_token_or_are_fetched():
 def test_issue_with_a_photo_link_to_another_site_is_refused(built):
     site, _, _, pics = built
     f = pics / "bad.txt"
-    f.write_text(issue(title="Another post", image="https://example.com/p.png"))
-    r = run(site, "--issue-body", str(f))
+    f.write_text(issue(image="https://example.com/p.png"))
+    r = run(site, "--issue-body", str(f), "--issue-title", "Another post")
     assert r.returncode == 1 and "attached to the issue" in r.stderr
+
+
+def test_the_default_issue_title_is_not_accepted_as_a_post_title():
+    with pytest.raises(new_post.PostError, match="Replace"):
+        new_post.parse_issue(issue(), "Post title")
+    with pytest.raises(new_post.PostError, match="Replace"):
+        new_post.parse_issue(issue(), "  ")

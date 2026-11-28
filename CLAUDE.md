@@ -45,8 +45,8 @@ Contributors are church volunteers, often non-developers, so explain changes in 
 
 ## Blog posts from issues
 New posts are built by a script, not by Claude. Someone opens the "New blog post" issue form
-(`.github/ISSUE_TEMPLATE/blog-post.yml`: Post title, Author, Post as Markdown, Post image), and `.github/workflows/new-blog-post.yml`
-runs `python3 tools/new_post.py --issue-body ...`, which writes `blog/<slug>.html` (copied from the newest post), the three photo sizes,
+(`.github/ISSUE_TEMPLATE/blog-post.yml`: the issue title is the post title, then Author, Post as Markdown, Post image), and `.github/workflows/new-blog-post.yml`
+runs `python3 tools/new_post.py --issue-body ... --issue-title ...`, which writes `blog/<slug>.html` (copied from the newest post), the three photo sizes,
 the first card on `blog.html`, the `sitemap.xml` entry, and the Older/Newer post links on the new post and the previous newest one.
 The workflow then opens a pull request on branch `claude/issue-<N>-blog-<slug>`. `claude.yml` leaves these issues alone when they are opened.
 - When someone replies on the issue, you update that same pull request. Edit the post's HTML directly (text, photo alt text, summary, title).
