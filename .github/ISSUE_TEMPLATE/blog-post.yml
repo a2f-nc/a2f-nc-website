@@ -18,7 +18,10 @@ body:
     id: post
     attributes:
       label: Post
-      description: Write or paste the post here. Use the Preview tab to see how it looks, and drag photos in where you want them.
+      description: |
+        Write or paste the post here. Use the Preview tab to see how it looks, and drag photos in where you want them.
+        Supported: headings, bold, italic, links, bullet and numbered lists, quotes and photos.
+        Not supported: tables, code blocks and lists inside lists.
     validations:
       required: true
   - type: textarea
